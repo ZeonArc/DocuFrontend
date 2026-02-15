@@ -40,6 +40,12 @@ html {
 
 @layer base {
   :root {
+    --bg-white: #f2f2f2;
+    --bg-grey: #e0e0e0;
+    --ink: #000000;
+    --font-comic: 'nitti-mostro-comic-shadow', sans-serif;
+    --font-header: 'canada-type-gibson', sans-serif;
+    --font-body: 'kanit', sans-serif;
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;

@@ -31,7 +31,7 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer ref={containerRef} className="w-full py-16 px-4 flex flex-col items-center justify-between bg-white relative overflow-hidden min-h-[400px]">
+    <footer id="meet-the-devs" ref={containerRef} className="w-full py-16 px-4 flex flex-col items-center justify-between bg-white relative overflow-hidden min-h-[400px]">
         
         {/* Mascots positioned absolute at bottom corners */}
         <div className="absolute bottom-0 left-0 w-32 md:w-56 z-0">

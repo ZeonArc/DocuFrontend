@@ -85,7 +85,7 @@ export default function WhatMakesUsDifferent() {
   }, []);
 
   return (
-    <section id="difference" ref={sectionRef} className="w-full min-h-screen flex flex-col md:flex-row border-b-2 border-black overflow-hidden">
+    <section id="how-it-works" ref={sectionRef} className="w-full min-h-screen flex flex-col md:flex-row border-b-2 border-black overflow-hidden">
       {/* Left Content */}
       <div className="w-full md:w-1/2 p-12 flex flex-col justify-center bg-[#e0e0e0] border-r-2 border-black">
         <div ref={textRef}>

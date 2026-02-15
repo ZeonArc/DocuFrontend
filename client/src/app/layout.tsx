@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({ subsets: ["latin"] });
+import { CursorProvider } from "@/components/custom-cursor";
 
 export const metadata: Metadata = {
   title: "DocuGithub - Your One Stop Solution to Readmes",
@@ -16,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <head>
+        <link rel="stylesheet" href="https://use.typekit.net/kag3qbi.css" />
+      </head>
+      <body><CursorProvider>{children}</CursorProvider></body>
     </html>
   );
 }
