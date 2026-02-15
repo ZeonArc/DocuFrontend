@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { Input } from "./ui/input";
 import { Search } from "lucide-react";
@@ -10,6 +10,17 @@ export default function Hero() {
   const containerRef = useRef(null);
   const titleRef = useRef(null);
   const mascotRef = useRef(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleTyping = () => {
+    setIsTyping(true);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+    }, 800); // Revert to smile after 800ms of inactivity
+  };
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -62,6 +73,11 @@ export default function Hero() {
             <Input 
               placeholder="URL goes here..." 
               className="border-none shadow-none focus-visible:ring-0 text-lg placeholder:text-muted-foreground/50"
+              onChange={handleTyping}
+              onBlur={() => {
+                setIsTyping(false);
+                if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+              }}
             />
             <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
               <Search className="w-6 h-6" />
@@ -71,7 +87,7 @@ export default function Hero() {
       </div>
 
       <div ref={mascotRef} className="relative w-full md:w-1/2 flex justify-center mt-12 md:mt-0 pb-12 md:pb-0 z-0">
-         <ComputerMascot />
+         <ComputerMascot isTyping={isTyping} />
       </div>
     </section>
   );
