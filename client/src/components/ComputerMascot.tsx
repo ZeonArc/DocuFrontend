@@ -13,25 +13,29 @@ const EXPRESSION_CONFIG = {
   height: "30%",
 };
 
+const MASCOT_CONFIG = {
+  mouthScale: 1.5,
+};
+
 const O_MOUTH_CONFIG = {
-  centerX: 20,   // Horizontal center position
-  centerY: 12,   // Vertical center position
-  rx: 6 ,         // Horizontal radius
-  ry: 8          // Vertical radius
+  centerX: 20,
+  centerY: 12,
+  rx: 6,
+  ry: 8
 };
 
 const CHEEKS_CONFIG = {
-  top: "50px",     // Vertical position from top of face
-  width: "24px",   // Width of each cheek
-  height: "12px",  // Height of each cheek
-  spread: "4px",   // Padding from sides (affects horizontal spread)
+  top: "50px",
+  width: "24px",
+  height: "12px",
+  spread: "4px",
 };
 
-function getOMouthPath() {
+function getOMouthPath(size = 1) {
     const { centerX, centerY, rx, ry } = O_MOUTH_CONFIG;
-    // Construct path: Left -> Bottom Arc -> Right -> Top Arc -> Left
-    // Control points at (centerX, centerY +/- ry) give a nice "O" shape
-    return `M${centerX - rx} ${centerY} Q${centerX} ${centerY + ry} ${centerX + rx} ${centerY} Q${centerX} ${centerY - ry} ${centerX - rx} ${centerY}`;
+    const sRx = rx * size;
+    const sRy = ry * size;
+    return `M${centerX - sRx} ${centerY} Q${centerX} ${centerY + sRy} ${centerX + sRx} ${centerY} Q${centerX} ${centerY - sRy} ${centerX - sRx} ${centerY}`;
 }
 
 
@@ -51,22 +55,19 @@ export default function ComputerMascot({ isTyping = false }: { isTyping?: boolea
     isTypingRef.current = isTyping;
   }, [isTyping]);
 
-  // Handle input focus/typing state changes
   useEffect(() => {
     if (isHovering.current) return;
-    
+
     if (isTyping && mouthRef.current) {
-      // Morph to "O" mouth (Concentrating)
-      gsap.to(mouthRef.current, { 
-        attr: { d: getOMouthPath() }, 
-        duration: 0.3 
+      gsap.to(mouthRef.current, {
+        attr: { d: getOMouthPath(MASCOT_CONFIG.mouthScale) },
+        duration: 0.3
       });
     } else if (!isTyping && mouthRef.current) {
-        // Return to normal (Split curve)
-       gsap.to(mouthRef.current, { 
-         attr: { d: "M2 2 Q11 7 20 7 Q29 7 38 2" }, 
-         duration: 0.3 
-       });
+      gsap.to(mouthRef.current, {
+        attr: { d: "M2 2 Q11 7 20 7 Q29 7 38 2" },
+        duration: 0.3
+      });
     }
   }, [isTyping]);
 
@@ -134,22 +135,16 @@ export default function ComputerMascot({ isTyping = false }: { isTyping?: boolea
          });
       }
 
-      // Update mouth based on state
       if (mouthRef.current) {
         let targetD = "";
-        
+
         if (isTypingRef.current) {
-            // Typing "O" mouth
-            targetD = getOMouthPath();
+            targetD = getOMouthPath(MASCOT_CONFIG.mouthScale);
         } else {
-            // Normal behavior: Flatten mouth slightly when looking down
-            // Normal curve (split): M2 2 Q11 7 20 7 Q29 7 38 2 (Peak Y=7)
-            // Flat curve (split):   M2 2 Q11 4 20 4 Q29 4 38 2 (Peak Y=4)
-            // Calculate intermediate Y based on moveY
             const baseY = 7;
-            const flattenFactor = Math.max(0, moveY / maxDistance); // 0 to 1
-            const currentY = baseY - (flattenFactor * 3); // 7 -> 4
-            
+            const flattenFactor = Math.max(0, moveY / maxDistance);
+            const currentY = baseY - (flattenFactor * 3);
+
             targetD = `M2 2 Q11 ${currentY} 20 ${currentY} Q29 ${currentY} 38 2`;
         }
 
@@ -205,20 +200,18 @@ export default function ComputerMascot({ isTyping = false }: { isTyping?: boolea
 
   const handleMouseLeave = () => {
     isHovering.current = false;
-    
-    // Reset cheeks immediately (others will be picked up by mousemove)
+
     if (cheeksRef.current) {
       gsap.to(cheeksRef.current, { opacity: 0, scale: 1, duration: 0.3 });
     }
-    // Reset to normal (or typing 'O')
+
     if (mouthRef.current) {
-      const targetD = isTypingRef.current 
-        ? getOMouthPath() 
+      const targetD = isTypingRef.current
+        ? getOMouthPath(MASCOT_CONFIG.mouthScale)
         : "M2 2 Q11 7 20 7 Q29 7 38 2";
       gsap.to(mouthRef.current, { attr: { d: targetD }, duration: 0.2 });
     }
-    // Eyes will naturally transition back via mousemove logic, 
-    // but we can give them a nudge to reset smoothly
+
     if (leftEyeRef.current && rightEyeRef.current) {
       gsap.to([leftEyeRef.current, rightEyeRef.current], { scaleY: 1, duration: 0.2 });
     }

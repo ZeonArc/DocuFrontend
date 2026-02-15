@@ -57,7 +57,7 @@ export default function Footer() {
         <div className="flex flex-col items-center justify-center z-10 w-full max-w-2xl mt-8">
             {/* CTA Button */}
             <div className="mb-8">
-                <Button className="rounded-full px-10 py-8 text-2xl font-black bg-black text-white hover:bg-gray-800 transition-all hover:scale-105 shadow-[6px_6px_0px_rgba(0,0,0,0.5)] border-2 border-transparent">
+                <Button className="rounded-full px-10 py-8 text-2xl font-black bg-black text-white hover:bg-gray-800 transition-all hover:scale-105 shadow-[6px_6px_0px_rgba(0,0,0,0.5)] border-2 border-transparent" style={{ fontFamily: "var(--font-header)" }}>
                     ☕ Play as a Guest
                 </Button>
             </div>
@@ -81,10 +81,10 @@ export default function Footer() {
         
         {/* Credits - Animated at bottom */}
          <div className="absolute bottom-4 w-full text-center z-10 footer-credits opacity-0 translate-y-10">
-             <p className="text-sm md:text-base font-bold text-gray-800">
+             <p className="text-sm md:text-base font-bold text-gray-800" style={{ fontFamily: "var(--font-body)" }}>
                 Made with love by <span className="text-red-500 inline-block hover:scale-125 transition-transform duration-300">♥</span> 
              </p>
-             <p className="text-lg md:text-xl font-black font-mono mt-1 text-black tracking-tight">
+             <p className="text-lg md:text-xl font-black mt-1 text-black tracking-tight" style={{ fontFamily: "var(--font-header)" }}>
                 Dark-Phoenix & Zeon Arcaneus
              </p>
         </div>

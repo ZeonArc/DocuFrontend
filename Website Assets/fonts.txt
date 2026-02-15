@@ -1,1 +1,25 @@
 <link rel="stylesheet" href="https://use.typekit.net/kag3qbi.css">
+
+font-family: canada-type-gibson, sans-serif;
+font-weight: 700;
+font-style: normal;
+
+font-family: kanit, sans-serif;
+font-weight: 300;
+font-style: normal;
+
+font-family: kanit, sans-serif;
+font-weight: 500;
+font-style: normal;
+
+font-family: lumios-marker, sans-serif;
+font-weight: 400;
+font-style: normal;
+
+font-family: nitti-mostro-comic-shadow, sans-serif;
+font-weight: 900;
+font-style: normal;
+
+font-family: segoe-print, sans-serif;
+font-weight: 400;
+font-style: normal;

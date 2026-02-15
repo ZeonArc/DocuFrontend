@@ -36,7 +36,7 @@ export default function TechMarquee() {
         {[...tools, ...tools, ...tools, ...tools].map((tool, i) => (
            <div key={i} className="flex items-center gap-3">
               <tool.icon className="w-5 h-5 text-yellow-400" />
-              <span className="text-lg font-bold uppercase tracking-widest">{tool.name}</span>
+              <span className="text-lg font-bold uppercase tracking-widest" style={{ fontFamily: "var(--font-header)" }}>{tool.name}</span>
               <span className="text-gray-500 mx-4">•</span>
            </div>
         ))}

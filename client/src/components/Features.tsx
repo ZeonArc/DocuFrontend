@@ -98,12 +98,12 @@ export default function Features() {
         </div>
         <div className="w-full md:w-1/2 p-12 flex flex-col justify-center bg-[#f0f0f0]">
           <div className="animate-item">
-            <p className="text-xl font-medium mb-2">You can save nearly</p>
-            <h2 className="text-9xl font-black mb-4 stat-percent">75%</h2>
-            <p className="text-xl font-medium mb-8">
+            <p className="text-[18px] md:text-[21px] font-medium mb-2" style={{ fontFamily: "var(--font-body)", fontWeight: 500 }}>You can save nearly</p>
+            <h2 className="text-[40px] md:text-[69px] font-black mb-4 stat-percent" style={{ fontFamily: "var(--font-header)", fontWeight: 700 }}>75%</h2>
+            <p className="text-[18px] md:text-[21px] font-medium mb-8" style={{ fontFamily: "var(--font-body)", fontWeight: 500 }}>
               with our unique intelligent Repository Sensing & One-Click Deployment
             </p>
-            <p className="text-muted-foreground leading-relaxed">
+            <p className="text-[18px] md:text-[21px] text-muted-foreground leading-relaxed" style={{ fontFamily: "var(--font-body)", fontWeight: 500 }}>
               Dolor et duis nostrud elit ea. Labore et adipiscing ex id Lorem consequat dolor irure reprehenderit irure dolore.
               Sint eiusmod excepteur mollit fugiat quis laborum voluptate.
             </p>
@@ -115,13 +115,13 @@ export default function Features() {
       <section className="feature-section w-full min-h-[80vh] flex flex-col md:flex-row border-b-2 border-black">
         <div className="w-full md:w-1/2 p-12 flex flex-col justify-center bg-[#e0e0e0] border-b-2 md:border-b-0 md:border-r-2 border-black order-2 md:order-1">
           <div className="animate-item">
-             <h2 className="text-5xl font-black mb-2">Contextual Code</h2>
-             <h3 className="text-4xl font-serif italic mb-8">Intelligence</h3>
-             <p className="text-lg leading-relaxed mb-6">
+             <h2 className="text-[40px] md:text-[69px] font-black mb-2" style={{ fontFamily: "var(--font-header)", fontWeight: 700 }}>Contextual Code</h2>
+             <h3 className="text-[44px] md:text-[76px] italic mb-8" style={{ fontFamily: "var(--font-accent)" }}>Intelligence</h3>
+             <p className="text-[18px] md:text-[21px] leading-relaxed mb-6" style={{ fontFamily: "var(--font-body)", fontWeight: 500 }}>
                 Dolor et duis nostrud elit ea. Labore et adipiscing ex id Lorem consequat dolor irure reprehenderit.
                 Labore fugiat adipiscing sunt quis do eu nulla mollit ipsum consequat.
              </p>
-             <p className="text-muted-foreground leading-relaxed">
+             <p className="text-[18px] md:text-[21px] text-muted-foreground leading-relaxed" style={{ fontFamily: "var(--font-body)", fontWeight: 500 }}>
                 Sint eiusmod excepteur mollit fugiat quis laborum voluptate. Excepteur est laborums exercitation proident mollit proident.
              </p>
           </div>
@@ -148,12 +148,12 @@ export default function Features() {
         </div>
         <div className="w-full md:w-1/2 p-12 flex flex-col justify-center bg-[#f0f0f0]">
           <div className="animate-item">
-             <h2 className="text-5xl font-black mb-2">Asset Generation</h2>
-             <h3 className="text-3xl font-serif italic mb-8">with Google Flow</h3>
-             <p className="text-lg leading-relaxed mb-6">
+             <h2 className="text-[40px] md:text-[69px] font-black mb-2" style={{ fontFamily: "var(--font-header)", fontWeight: 700 }}>Asset Generation</h2>
+             <h3 className="text-[44px] md:text-[76px] italic mb-8" style={{ fontFamily: "var(--font-accent)" }}>with Google Flow</h3>
+             <p className="text-[18px] md:text-[21px] leading-relaxed mb-6" style={{ fontFamily: "var(--font-body)", fontWeight: 500 }}>
                 Dolor et duis nostrud elit ea. Labore et adipiscing ex id Lorem consequat dolor irure reprehenderit.
              </p>
-             <p className="text-muted-foreground leading-relaxed">
+             <p className="text-[18px] md:text-[21px] text-muted-foreground leading-relaxed" style={{ fontFamily: "var(--font-body)", fontWeight: 500 }}>
                 Sint eiusmod excepteur mollit fugiat quis laborum voluptate. Excepteur est laborums exercitation proident mollit proident.
              </p>
           </div>

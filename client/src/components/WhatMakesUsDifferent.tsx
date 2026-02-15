@@ -89,12 +89,12 @@ export default function WhatMakesUsDifferent() {
       {/* Left Content */}
       <div className="w-full md:w-1/2 p-12 flex flex-col justify-center bg-[#e0e0e0] border-r-2 border-black">
         <div ref={textRef}>
-            <h2 className="text-5xl font-black mb-8">
+            <h2 className="text-[40px] md:text-[69px] font-black mb-8" style={{ fontFamily: "var(--font-header)", fontWeight: 700 }}>
             What makes us <br />
-            <span className="font-serif italic font-normal">Different?</span>
+            <span className="text-[44px] md:text-[76px] italic" style={{ fontFamily: "var(--font-accent)" }}>Different?</span>
             </h2>
 
-            <div className="space-y-6 text-lg font-medium leading-relaxed opacity-90">
+            <div className="space-y-6 text-[18px] md:text-[21px] font-medium leading-relaxed opacity-90" style={{ fontFamily: "var(--font-body)", fontWeight: 500 }}>
             <p>
                 Dolor et duis nostrud elit ea. Labore et adipiscing ex id Lorem consequat dolor irure reprehenderit irure dolore.
                 Labore fugiat adipiscing sunt quis do eu nulla mollit ipsum consequat.

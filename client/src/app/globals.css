@@ -36,6 +36,11 @@ html {
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  --font-family-comic: 'nitti-mostro-comic-shadow', sans-serif;
+  --font-family-header: 'canada-type-gibson', sans-serif;
+  --font-family-body: 'kanit', sans-serif;
+  --font-family-accent: 'lumios-marker', sans-serif;
+  --font-family-handwritten: 'segoe-print', sans-serif;
 }
 
 @layer base {
@@ -46,6 +51,8 @@ html {
     --font-comic: 'nitti-mostro-comic-shadow', sans-serif;
     --font-header: 'canada-type-gibson', sans-serif;
     --font-body: 'kanit', sans-serif;
+    --font-accent: 'lumios-marker', sans-serif;
+    --font-handwritten: 'segoe-print', sans-serif;
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
