@@ -111,3 +111,13 @@ html {
 .grayscale-theme {
   filter: grayscale(100%);
 }
+
+/* Responsive font-size utility: set --fs-mobile and --fs-desktop via inline style */
+.responsive-text {
+  font-size: var(--fs-mobile);
+}
+@media (min-width: 768px) {
+  .responsive-text {
+    font-size: var(--fs-desktop);
+  }
+}

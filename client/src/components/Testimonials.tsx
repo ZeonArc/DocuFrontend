@@ -3,12 +3,13 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { TESTIMONIALS_TYPOGRAPHY as CONFIG } from "@/config/sections";
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function Testimonials() {
   const containerRef = useRef(null);
-  
+
   const companies = [
     { name: "MINISTRY OF PUBLIC SECURITY", size: "text-4xl", font: "font-bold", fontVar: "--font-header" },
     { name: "MINISTRY OF FOREIGN AFFAIRS", size: "text-3xl", font: "font-medium", fontVar: "--font-body" },
@@ -84,12 +85,51 @@ export default function Testimonials() {
   }, []);
 
   return (
-    <section id="testimonials" ref={containerRef} className="w-full min-h-[60vh] flex flex-col items-center justify-center p-12 bg-[#e8e8e8] border-b-2 border-black">
-      <h2 className="text-[40px] md:text-[69px] font-black mb-12 text-center" style={{ fontFamily: "var(--font-header)", fontWeight: 700 }}>
-        What people <span className="text-[44px] md:text-[76px] italic" style={{ fontFamily: "var(--font-accent)" }}>Say about us ??</span>
+    <section
+      id="testimonials"
+      ref={containerRef}
+      className="w-full min-h-[60vh] flex flex-col items-center justify-center border-b-2 border-black"
+      style={{
+        padding: CONFIG.container.paddingAll,
+        backgroundColor: CONFIG.container.backgroundColor,
+      }}
+    >
+      <h2
+        className="responsive-text text-center"
+        style={{
+          "--fs-mobile": CONFIG.heading.fontSizeMobile,
+          "--fs-desktop": CONFIG.heading.fontSizeDesktop,
+          fontFamily: CONFIG.heading.fontFamily,
+          fontWeight: CONFIG.heading.fontWeight,
+          color: CONFIG.heading.color,
+          marginBottom: CONFIG.heading.marginBottom,
+          transform: `translate(${CONFIG.heading.xOffset}px, ${CONFIG.heading.yOffset}px)`,
+        } as React.CSSProperties}
+      >
+        What people{" "}
+        <span
+          className="responsive-text"
+          style={{
+            "--fs-mobile": CONFIG.accent.fontSizeMobile,
+            "--fs-desktop": CONFIG.accent.fontSizeDesktop,
+            fontFamily: CONFIG.accent.fontFamily,
+            fontStyle: CONFIG.accent.fontStyle,
+            color: CONFIG.accent.color,
+            display: "inline-block",
+            transform: `translate(${CONFIG.accent.xOffset}px, ${CONFIG.accent.yOffset}px)`,
+          } as React.CSSProperties}
+        >Say about us ??</span>
       </h2>
-      
-      <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 max-w-6xl text-center opacity-80">
+
+      <div
+        className="flex flex-wrap items-center justify-center text-center"
+        style={{
+          columnGap: CONFIG.cloudContainer.gapX,
+          rowGap: CONFIG.cloudContainer.gapY,
+          opacity: CONFIG.cloudContainer.opacity,
+          maxWidth: CONFIG.cloudContainer.maxWidth,
+        }}
+      >
         {companies.map((company, index) => (
             <span key={index} className={`cloud-item ${company.size} ${company.font} leading-none`} style={{ fontFamily: `var(${company.fontVar})` }}>
                 {company.name}

@@ -1,43 +1,80 @@
-Detailed UI Refinements Implementation Plan
+Implementation Plan: Revamp Features & Marquee
 Goal Description
-Refine the Hero section's URL bar, text content, and branding to align with the provided design specifications. Specifically, ensure the input box is seamless and transparent, update placeholder and description text colors to black, and correct the capitalization of "DocuGitHub".
-
-User Review Required
-IMPORTANT
-
-The changes affect the visual appearance of the Hero section and Header.
-
-URL Bar: Input will become transparent within its container, with stronger black placeholder text. This assumes the parent container styling provides the visual boundary.
-Branding: "DOCUGITHUB" (all caps) will be changed to "DocuGitHub" (PascalCase). This applies to both the large Hero title and the Header logo text.
-Description: "Your one stop solution to readmes" will be shortened to "readme" and colored black.
+Marquee: Implement a seamless infinite scrolling marquee with tech logos (grayscale to color on hover).
+Video Integration: Replace static images/animations in "What Makes Us Different" and "Features" sections with specific video assets. Ensure alternating layouts, white backgrounds for videos, no borders between content and video, and "fit" aspect ratio.
+User Preferences & Requirements
+Marquee: Logo content, Grayscale â†’ Color (Hover), Pause on Hover, Medium Speed.
+Videos:
+Alternating sides (White side).
+No borders separating video from content.
+Embedded as object-fit: contain.
+Mappings:
+WhatMakesUsDifferent
+ â†’ 
+what-makes-us-different.mp4
+Features
+ (75%) â†’ 75%.mp4
+Features
+ (Contextual Code) â†’ 
+contextual-code-intelligence.mp4
+Features
+ (Asset Generation) â†’ 
+asset-generation-with-google-flow.mp4
 Proposed Changes
-client/src/components
+1. Asset Management
+[NEW] Public Assets
+Create directory: client/public/videos/
+Move/Copy the following files from Website Assets/ to client/public/videos/:
+what-makes-us-different.mp4
+75%.mp4
+contextual-code-intelligence.mp4
+asset-generation-with-google-flow.mp4
+2. [Component] TechMarquee.tsx
 [MODIFY] 
-Hero.tsx
-URL Bar Input:
-Add bg-transparent class to ensure no background color interferes with the container.
-Change placeholder:text-muted-foreground/50 to placeholder:text-black for high contrast.
-Ensure border-none and shadow-none are preserved for the seamless look.
-Main Title (H1):
-Locate the projected text "DOCUGITHUB".
-Update content to "DocuGitHub".
-Description (p):
-Locate the text "Your one stop solution to readmes".
-Update content to "readme".
-Change text-muted-foreground to text-black.
+TechMarquee.tsx
+Implementation: GSAP infinite loop (xPercent).
+Content: Tech Icons (React, Next, Tailwind, etc.).
+Style: Flex row, gap-16+, grayscale by default.
+Hover: Remove grayscale, pause animation.
+3. [Component] WhatMakesUsDifferent.tsx
 [MODIFY] 
-Header.tsx
-Brand Text:
-Locate "DOCUGITHUB".
-Update content to "DocuGitHub".
-### Verification Plan
-- [x] **HERO_CONFIG Implementation**: Code compiles and variables are accessible.
-- [x] **Offsets**: Verified text and button elements use the config values.
-- [x] **Input Color**: Verified `#D4D4D4` is set in config.
-
-### Manual Verification
--   **Visual Inspection**:
-    1.  **URL Bar**: Confirm the input box has no visible border or background of its own and blends seamlessly. Check that "URL goes here..." is solid black.
-    2.  **Hero Title**: Confirm the large text reads "DocuGitHub".
-    3.  **Hero Description**: Confirm the text below the title is simply "readme" and is solid black.
-    4.  **Header**: Confirm the small logo text in the header reads "DocuGitHub".
+WhatMakesUsDifferent.tsx
+Layout:
+Left: Text Content (Grey background #e0e0e0).
+Right: Video (White background bg-white).
+Changes:
+Remove canvas animation logic.
+Remove border-r-2 from the Left container to remove the separator.
+Set Right container background to white.
+Insert <video src="/videos/what-makes-us-different.mp4" ... /> in the Right container.
+Video Style: w-full h-full object-contain.
+4. [Component] Features.tsx
+[MODIFY] 
+Features.tsx
+Section 1 (75%):
+Left: Video (75%.mp4) on White background.
+Right: Text on Grey background.
+Action: Replace generic Image with <video>. Remove border-r-2 from Left container.
+Section 2 (Contextual Code Intelligence):
+Left: Text on Grey background.
+Right: Video (
+contextual-code-intelligence.mp4
+) on White background.
+Action: Replace Wizard Image with <video>. Remove border-r-2 from Left container.
+Section 3 (Asset Generation):
+Left: Video (
+asset-generation-with-google-flow.mp4
+) on White background.
+Right: Text on Grey background.
+Action: Replace Lab Image with <video>. Remove border-r-2 from Left container.
+General:
+Ensure all video containers have bg-white.
+Ensure all videos have object-contain.
+Remove explicit borders between the flex columns.
+Verification Plan
+Marquee: Check infinite scroll, hover pause, color change.
+Videos:
+Verify all 4 videos play automatically (autoplay, muted, loop).
+Verify "Fit" ratio (no cropping).
+Verify no vertical borders between text and video.
+Verify alternating layout (Right -> Left -> Right -> Left video placement relative to scroll/page order).

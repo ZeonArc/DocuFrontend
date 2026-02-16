@@ -9,81 +9,7 @@ import { SplitText } from "gsap/SplitText"
 
 gsap.registerPlugin(SplitText)
 import { useCursor } from "@/components/custom-cursor"
-
-const HEADER_CONFIG = {
-  container: {
-    topPosition: 20,
-    zIndex: 200,
-  },
-  nav: {
-    collapsedWidth: 150,
-    expandedWidthMin: 800,
-    expandedWidthMax: 1200,
-    collapsedHeight: 50,
-    expandedHeight: 60,
-    backgroundColor: "#d4d4d4",
-    backgroundOpacity: 0.85,
-    borderColor: "#000000",
-    borderWidth: 2,
-    borderRadius: 9999,
-    transitionDuration: 0.5,
-  },
-  initText: {
-    text: "INIT",
-    fontSize: 18,
-    fontWeight: 400,
-    fontFamily: "kanit",
-    color: "#000000",
-    letterSpacing: "normal",
-    dotAnimationSpeed: 500,
-    xOffset: 0,
-    yOffset: 2,
-  },
-  logo: {
-    height: 38,
-    borderColor: "#000000",
-    borderWidth: 2,
-    borderRadius: 4,
-    leftOffset: 24,
-  },
-  brandText: {
-    text: "DocuGitHub",
-    fontSize: 22,
-    fontWeight: 400,
-    fontFamily: "kanit",
-    color: "#000000",
-    letterSpacing: "0.05em",
-    leftGap: 12,
-  },
-  navLinks: {
-    fontSize: 16.5,
-    fontWeight: 500,
-    fontFamily: "kanit",
-    color: "#000000",
-    letterSpacing: "0.025em",
-    gap:20,
-    rightOffset: 24,
-    hoverUnderlineOffset: 4,
-    xOffset: 0,
-    yOffset: 1,
-  },
-  mobileMenu: {
-    backgroundColor: "#d4d4d4",
-    borderColor: "#000000",
-    borderWidth: 2,
-    borderRadius: 16,
-    shadow: "4px 4px 0px rgba(0,0,0,1)",
-    padding: 32,
-    maxWidth: 384,
-    menuTitleFontSize: 20,
-    menuTitleFontWeight: 700,
-    menuTitleFontFamily: "canada-type-gibson",
-    menuLinkFontSize: 21,
-    menuLinkFontWeight: 500,
-    menuLinkFontFamily: "kanit",
-    menuLinkGap: 16,
-  }
-};
+import { HEADER_TYPOGRAPHY as HEADER_CONFIG } from "@/config/sections"
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false)
@@ -175,7 +101,7 @@ export default function Header() {
           }}
           transition={{ duration: HEADER_CONFIG.nav.transitionDuration, ease: [0.4, 0, 0.2, 1] }}
         >
-          {/* INIT text — always mounted, fades out quickly */}
+          {/* INIT text */}
           <motion.div
             animate={{ opacity: scrolled ? 0 : 1 }}
             transition={{ duration: 0.2, delay: scrolled ? 0 : 0.35 }}
@@ -194,7 +120,7 @@ export default function Header() {
             {HEADER_CONFIG.initText.text}{dots}
           </motion.div>
 
-          {/* Expanded content — always mounted, fades in after width expands */}
+          {/* Expanded content */}
           <motion.div
             animate={{ opacity: scrolled ? 1 : 0 }}
             transition={{ duration: 0.2, delay: scrolled ? 0.3 : 0 }}
@@ -236,7 +162,8 @@ export default function Header() {
                     fontWeight: HEADER_CONFIG.brandText.fontWeight,
                     fontFamily: HEADER_CONFIG.brandText.fontFamily,
                     color: HEADER_CONFIG.brandText.color,
-                    letterSpacing: HEADER_CONFIG.brandText.letterSpacing
+                    letterSpacing: HEADER_CONFIG.brandText.letterSpacing,
+                    transform: `translate(${HEADER_CONFIG.brandText.xOffset}px, ${HEADER_CONFIG.brandText.yOffset}px)`,
                   }}
                 >
                   {HEADER_CONFIG.brandText.text}

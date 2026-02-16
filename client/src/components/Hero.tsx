@@ -5,80 +5,7 @@ import gsap from "gsap";
 import { Input } from "./ui/input";
 import Image from "next/image";
 import ComputerMascot from "./ComputerMascot";
-
-// --- HERO CONFIGURATION VARIABLES ---
-// Modify these values to adjust the appearance of the Hero section
-// offsets are in pixels unless otherwise specified
-const HERO_CONFIG = {
-  section: {
-    backgroundColor: "#f2f2f2", 
-    paddingTop: 64,
-    paddingBottom: 64,
-    paddingLeft: 32,
-    paddingRight: 32,
-    fontFamily: "var(--font-body)",
-    borderColor: "#000000",
-    borderBottomWidth: 2,
-  },
-  badge: {
-    text: "Beta v1.0",
-    fontSize: 12, 
-    fontWeight: 700, // Numeric weight
-    letterSpacing: "0.05em",
-    color: "#000000",
-    backgroundColor: "#ffffff",
-    borderColor: "#000000",
-    borderWidth: 2,
-    marginBottom: 1,
-  },
-  title: {
-    text: "DocuGithub",
-    fontSizeMobile: 90,
-    fontSizeDesktop: 50,
-    fontWeight: 900,
-    fontFamily: "var(--font-comic)",
-    lineHeight: 0.9,
-    letterSpacing: "0.60em",
-    color: "#000000",
-    leftBorder: 0,
-    rightBorder: 0,
-    lineWidth: 0,
-    lineColor: "#000000",
-  },
-  description: {
-    text: "Your one stop solution to readmes",
-    fontSizeMobile: 24,
-    fontSizeDesktop: 30,
-    fontFamily: "var(--font-handwritten)",
-    fontStyle: "italic",
-    color: "#000000",
-    marginTop: -1,
-    marginBottom: 12,
-  },
-  inputBox: {
-    containerBackgroundColor: "#d4d4d4",
-    inputFieldBackgroundColor: "#d4d4d4",
-    borderColor: "#000000",
-    borderWidth: 3,
-    borderRadius: 9999,
-    shadow: "0 4px 6px -1px rgba(0,0,0,0.15)",
-    paddingLeft: 24,
-    paddingRight: 56,
-    paddingTop: 12,
-    paddingBottom: 12,
-    placeholderText: "URL goes here.....",
-    placeholderColor: "#666666",
-    textColor: "#000000",
-    fontSize: 20,
-    fontWeight: 300,
-    fontFamily: "var(--font-body)",
-  },
-  uploadButton: {
-    size: 85,
-    xOffset: -8,
-    yOffset: 1,
-  }
-};
+import { HERO_TYPOGRAPHY as HERO_CONFIG } from "@/config/sections";
 
 export default function Hero() {
   const containerRef = useRef(null);
@@ -90,10 +17,10 @@ export default function Hero() {
   const handleTyping = () => {
     setIsTyping(true);
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    
+
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
-    }, 800); // Revert to smile after 800ms of inactivity
+    }, 800);
   };
 
   useEffect(() => {
@@ -120,11 +47,11 @@ export default function Hero() {
   }, []);
 
   return (
-    <section 
-      id="hero" 
-      ref={containerRef} 
+    <section
+      id="hero"
+      ref={containerRef}
       className="w-full min-h-screen flex flex-col md:flex-row items-center justify-between overflow-hidden relative"
-      style={{ 
+      style={{
         backgroundColor: HERO_CONFIG.section.backgroundColor,
         paddingTop: `${HERO_CONFIG.section.paddingTop}px`,
         paddingBottom: `${HERO_CONFIG.section.paddingBottom}px`,
@@ -135,9 +62,9 @@ export default function Hero() {
       }}
     >
       <div className="flex flex-col gap-6 max-w-2xl px-4 z-10 w-full md:w-1/2">
-        
+
         {/* Badge */}
-        <div 
+        <div
           className="rounded-full w-fit uppercase"
           style={{
             backgroundColor: HERO_CONFIG.badge.backgroundColor,
@@ -149,7 +76,8 @@ export default function Hero() {
             borderWidth: `${HERO_CONFIG.badge.borderWidth}px`,
             borderStyle: "solid",
             marginBottom: `${HERO_CONFIG.badge.marginBottom}px`,
-            padding: "4px 16px" // keeping simple padding inline or add to config if needed, but per request offsets are key
+            padding: "4px 16px",
+            transform: `translate(${HERO_CONFIG.badge.xOffset}px, ${HERO_CONFIG.badge.yOffset}px)`,
           }}
         >
           {HERO_CONFIG.badge.text}
@@ -170,6 +98,7 @@ export default function Hero() {
             borderRight: `${HERO_CONFIG.title.rightBorder}px solid ${HERO_CONFIG.title.lineColor}`,
             paddingLeft: HERO_CONFIG.title.leftBorder > 0 ? '8px' : '0',
             paddingRight: HERO_CONFIG.title.rightBorder > 0 ? '8px' : '0',
+            transform: `translate(${HERO_CONFIG.title.xOffset}px, ${HERO_CONFIG.title.yOffset}px)`,
           }}
         >
           <div
@@ -194,7 +123,10 @@ export default function Hero() {
             fontFamily: HERO_CONFIG.description.fontFamily,
             fontStyle: HERO_CONFIG.description.fontStyle as React.CSSProperties['fontStyle'],
             marginTop: `${HERO_CONFIG.description.marginTop}px`,
-            marginBottom: `${HERO_CONFIG.description.marginBottom}px`
+            marginBottom: `${HERO_CONFIG.description.marginBottom}px`,
+            transform: `translate(${HERO_CONFIG.description.xOffset}px, ${HERO_CONFIG.description.yOffset}px)`,
+            width: HERO_CONFIG.description.width,
+            height: HERO_CONFIG.description.height,
           }}
           className="md:text-[30px]"
         >
@@ -236,7 +168,7 @@ export default function Hero() {
               }}
             />
           </div>
-          
+
           {/* Upload Button */}
           <button
             className="absolute hover:scale-108 transition-transform duration-200"
