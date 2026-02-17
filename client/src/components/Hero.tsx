@@ -171,6 +171,7 @@ export default function Hero() {
 
           {/* Upload Button */}
           <button
+            data-upload-trigger
             className="absolute hover:scale-108 transition-transform duration-200"
             style={{
               right: `${HERO_CONFIG.uploadButton.xOffset}px`,

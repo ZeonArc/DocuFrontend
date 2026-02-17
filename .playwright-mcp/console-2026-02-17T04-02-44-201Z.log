@@ -1,0 +1,26 @@
+[    1630ms] [ERROR] Failed to load resource: net::ERR_CACHE_OPERATION_NOT_SUPPORTED @ http://localhost:3002/videos/75-percent.mp4:0
+[    2205ms] [WARNING] Image with src "/hero-body.png" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes @ http://localhost:3002/_next/static/chunks/2963f_next_dist_45888d50._.js:2297
+[  150113ms] [ERROR] ./docufront/DocuFrontend/client/src/config/sections.ts:45:14
+Parsing ecmascript source code failed
+  43 |     dotAnimationSpeed: 500,
+  44 |     xOffset: 0,
+> 45 |     yOffset: ,
+     |              ^
+  46 |   },
+  47 |   logo: {
+  48 |     height: 38,
+
+Expression expected
+
+Import traces:
+  Client Component Browser:
+    ./docufront/DocuFrontend/client/src/config/sections.ts [Client Component Browser]
+    ./docufront/DocuFrontend/client/src/components/Footer.tsx [Client Component Browser]
+    ./docufront/DocuFrontend/client/src/components/Footer.tsx [Server Component]
+    ./docufront/DocuFrontend/client/src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./docufront/DocuFrontend/client/src/config/sections.ts [Client Component SSR]
+    ./docufront/DocuFrontend/client/src/components/Footer.tsx [Client Component SSR]
+    ./docufront/DocuFrontend/client/src/components/Footer.tsx [Server Component]
+    ./docufront/DocuFrontend/client/src/app/page.tsx [Server Component] @ http://localhost:3002/_next/static/chunks/2963f_next_dist_45888d50._.js:3127

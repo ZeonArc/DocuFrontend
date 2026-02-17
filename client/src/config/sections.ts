@@ -42,7 +42,7 @@ export const HEADER_TYPOGRAPHY = {
     letterSpacing: "normal",
     dotAnimationSpeed: 500,
     xOffset: 0,
-    yOffset: 2,
+    yOffset: 0.25,
   },
   logo: {
     height: 38,
@@ -73,6 +73,14 @@ export const HEADER_TYPOGRAPHY = {
     hoverUnderlineOffset: 4,
     xOffset: 0,
     yOffset: 1,
+  },
+  cursors: {
+    logo: "context-menu",
+    navLinkDefault: "",
+    navLinkUVPs: "",
+    navLinkHowItWorks: "help",
+    navLinkTestimonials: "handwriting",
+    navLinkMeetTheDevs: "person",
   },
   mobileMenu: {
     backgroundColor: "#d4d4d4",
@@ -177,6 +185,10 @@ export const HERO_TYPOGRAPHY = {
     xOffset: -8,
     yOffset: 1,
   },
+  cursors: {
+    mascotFace: "pan",
+    uploadButton: "pin",
+  },
 } as const;
 
 // =============================================================================
@@ -238,6 +250,9 @@ export const WHAT_MAKES_US_DIFFERENT_TYPOGRAPHY = {
     backgroundColor: "#e0e0e0",
     borderColor: "#000000",
     borderWidth: "2px",
+  },
+  cursors: {
+    section: "",
   },
 } as const;
 
@@ -504,6 +519,9 @@ export const TESTIMONIALS_TYPOGRAPHY = {
     borderColor: "#000000",
     borderWidth: "2px",
   },
+  cursors: {
+    section: "",
+  },
 } as const;
 
 // =============================================================================
@@ -580,6 +598,55 @@ export const FOOTER_TYPOGRAPHY = {
     paddingX: "16px",
     backgroundColor: "#ffffff",
     minHeight: "400px",
+  },
+  cursors: {
+    ctaButton: "",
+    socialLinks: "",
+  },
+} as const;
+
+// =============================================================================
+// CURSOR CONFIG
+// =============================================================================
+// Variable: CURSOR_CONFIG
+// Location: Used in client/src/components/custom-cursor.tsx
+// Controls: Hotspot offsets (x, y) for every cursor + middle-click scroll speed
+//
+// Hotspot = the pixel within the cursor image that acts as the click/pointer point.
+// x = pixels from left edge of cursor image
+// y = pixels from top edge of cursor image
+// scrollSpeed = multiplier for middle-click drag scroll (1 = 1:1, 2 = 2x faster, etc.)
+// =============================================================================
+
+export const CURSOR_CONFIG = {
+  scrollSpeed: 2,
+  // Uniform size (px) applied to all standard cursors
+  size: 50,
+  // Separate size (px) for the testimonial / handwriting cursor
+  testimonialCursorSize: 5,
+  hotspots: {
+    default:     { x: 4,  y: 2  },  // Pointer.cur  — arrow tip
+    pointer:     { x: 8,  y: 0  },  // Link.cur      — fingertip
+    text:        { x: 3,  y: 9  },  // Text.cur      — I-beam center
+    move:        { x: 11, y: 11 },  // Move.cur      — 4-way center
+    grab:        { x: 11, y: 11 },  // Move.cur      — palm center (idle)
+    grabbing:    { x: 11, y: 11 },  // Grabbing.cur  — palm center (active)
+    notAllowed:  { x: 11, y: 11 },  // Unavailable.cur — visual center
+    help:        { x: 4,  y: 2  },  // Help.cur      — arrow tip
+    crosshair:   { x: 11, y: 11 },  // Cross.cur     — precise center
+    zoomIn:      { x: 8,  y: 8  },  // Zoom-in.cur   — lens center
+    zoomOut:     { x: 8,  y: 8  },  // Zoom-out.cur  — lens center
+    ewResize:    { x: 11, y: 3  },  // Horz.cur      — horizontal center
+    nsResize:    { x: 3,  y: 11 },  // Vert.cur      — vertical center
+    nwseResize:  { x: 11, y: 11 },  // Dgn1.cur      — diagonal center
+    neswResize:  { x: 11, y: 11 },  // Dgn2.cur      — diagonal center
+    wait:        { x: 11, y: 11 },  // Busy.ani      — visual center
+    progress:    { x: 4,  y: 2  },  // Work.ani      — arrow tip
+    contextMenu: { x: 4,  y: 2  },  // Alternate.cur — arrow tip
+    handwriting: { x: 5,  y: 29 },  // Handwriting   — pen nib (Testimonials nav link)
+    pan:         { x: 11, y: 11 },  // Pan.cur       — center
+    person:      { x: 11, y: 4  },  // Person.cur    — head top
+    pin:         { x: 5,  y: 0  },  // Pin.cur       — pin tip
   },
 } as const;
 

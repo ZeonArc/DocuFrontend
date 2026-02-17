@@ -2,45 +2,47 @@
 
 html {
   scroll-behavior: smooth;
+  min-height: 100vh;
+  width: 100%;
 }
 
 @theme {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
-  
+
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
-  
+
   --color-popover: hsl(var(--popover));
   --color-popover-foreground: hsl(var(--popover-foreground));
-  
+
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
-  
+
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
-  
+
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
-  
+
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
-  
+
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
-  
+
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-  
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
-  --font-family-comic: 'nitti-mostro-comic-shadow', sans-serif;
-  --font-family-header: 'canada-type-gibson', sans-serif;
-  --font-family-body: 'kanit', sans-serif;
-  --font-family-accent: 'lumios-marker', sans-serif;
-  --font-family-handwritten: 'segoe-print', sans-serif;
+  --font-family-comic: "nitti-mostro-comic-shadow", sans-serif;
+  --font-family-header: "canada-type-gibson", sans-serif;
+  --font-family-body: "kanit", sans-serif;
+  --font-family-accent: "lumios-marker", sans-serif;
+  --font-family-handwritten: "segoe-print", sans-serif;
 }
 
 @layer base {
@@ -48,11 +50,38 @@ html {
     --bg-white: #f2f2f2;
     --bg-grey: #e0e0e0;
     --ink: #000000;
-    --font-comic: 'nitti-mostro-comic-shadow', sans-serif;
-    --font-header: 'canada-type-gibson', sans-serif;
-    --font-body: 'kanit', sans-serif;
-    --font-accent: 'lumios-marker', sans-serif;
-    --font-handwritten: 'segoe-print', sans-serif;
+    --font-comic: "nitti-mostro-comic-shadow", sans-serif;
+    --font-header: "canada-type-gibson", sans-serif;
+    --font-body: "kanit", sans-serif;
+    --font-accent: "lumios-marker", sans-serif;
+    --font-handwritten: "segoe-print", sans-serif;
+
+    /* ============================================
+       CUSTOM CURSORS - Bibata Modern Ice (21 total)
+       ============================================ */
+    --cursor-default: url("/cursors/Pointer.cur"), auto;
+    --cursor-pointer: url("/cursors/Link.cur"), pointer;
+    --cursor-text: url("/cursors/Text.cur"), text;
+    --cursor-move: url("/cursors/Move.cur"), move;
+    --cursor-grab: url("/cursors/Move.cur"), grab;
+    --cursor-grabbing: url("/cursors/Grabbing.cur"), grabbing;
+    --cursor-not-allowed: url("/cursors/Unavailable.cur"), not-allowed;
+    --cursor-help: url("/cursors/Help.cur"), help;
+    --cursor-crosshair: url("/cursors/Cross.cur"), crosshair;
+    --cursor-zoom-in: url("/cursors/Zoom-in.cur"), zoom-in;
+    --cursor-zoom-out: url("/cursors/Zoom-out.cur"), zoom-out;
+    --cursor-ew-resize: url("/cursors/Horz.cur"), ew-resize;
+    --cursor-ns-resize: url("/cursors/Vert.cur"), ns-resize;
+    --cursor-nwse-resize: url("/cursors/Dgn1.cur"), nwse-resize;
+    --cursor-nesw-resize: url("/cursors/Dgn2.cur"), nesw-resize;
+    --cursor-wait: url("/cursors/Busy.ani"), wait;
+    --cursor-progress: url("/cursors/Work.ani"), progress;
+    --cursor-context-menu: url("/cursors/Alternate.cur"), context-menu;
+    --cursor-handwriting: url("/cursors/Handwriting.png") 3 18, url("/cursors/Handwriting.cur"), pointer;
+    --cursor-pan: url("/cursors/Pan.cur"), all-scroll;
+    --cursor-person: url("/cursors/Person.cur"), pointer;
+    --cursor-pin: url("/cursors/Pin.cur"), pointer;
+
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
@@ -102,10 +131,257 @@ html {
   * {
     border-color: var(--color-border);
   }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    cursor: var(--cursor-default);
+    min-height: 100vh;
+    width: 100%;
+    position: relative;
   }
+}
+
+/* ============================================
+   HIDE NATIVE SCROLLBARS
+   Eliminates the scrollbar zone that shows the
+   OS default cursor regardless of CSS rules.
+   ============================================ */
+
+html {
+  scrollbar-width: none; /* Firefox */
+}
+::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* ============================================
+   BIBATA CURSOR MAPPINGS
+   Unlayered CSS — highest cascade priority,
+   overrides all Tailwind @layer rules.
+   ============================================ */
+
+html,
+body {
+  cursor: var(--cursor-default);
+}
+
+/* Force every element (including pseudo-elements) to inherit —
+   prevents any gap from falling through to the OS default cursor.
+   Specific rules below override this for interactive elements. */
+*,
+*::before,
+*::after {
+  cursor: inherit;
+}
+
+/* ============================================
+   REMAP TAILWIND CURSOR UTILITIES
+   Tailwind's cursor-* classes emit native CSS
+   cursor values (cursor: pointer, cursor: default, etc.)
+   which bypass our custom cursor system.
+   These overrides redirect them to our .cur files.
+   ============================================ */
+
+.cursor-auto,
+.cursor-default {
+  cursor: var(--cursor-default);
+}
+.cursor-pointer {
+  cursor: var(--cursor-pointer);
+}
+.cursor-text {
+  cursor: var(--cursor-text);
+}
+.cursor-move {
+  cursor: var(--cursor-move);
+}
+.cursor-grab {
+  cursor: var(--cursor-grab);
+}
+.cursor-grabbing {
+  cursor: var(--cursor-grabbing);
+}
+.cursor-not-allowed {
+  cursor: var(--cursor-not-allowed);
+}
+.cursor-wait {
+  cursor: var(--cursor-wait);
+}
+.cursor-crosshair {
+  cursor: var(--cursor-crosshair);
+}
+.cursor-zoom-in {
+  cursor: var(--cursor-zoom-in);
+}
+.cursor-zoom-out {
+  cursor: var(--cursor-zoom-out);
+}
+.cursor-none {
+  cursor: none;
+}
+
+/* Tailwind variant: disabled:cursor-not-allowed */
+.disabled\:cursor-not-allowed:disabled {
+  cursor: var(--cursor-not-allowed);
+}
+
+/* Links and buttons — Link.cur */
+a,
+button:not(:disabled),
+[role="button"],
+[role="link"] {
+  cursor: var(--cursor-pointer);
+}
+
+/* Disabled elements — Unavailable.cur */
+button:disabled,
+[disabled],
+[aria-disabled="true"] {
+  cursor: var(--cursor-not-allowed);
+}
+
+/* All text inputs — Text.cur */
+input,
+textarea,
+[contenteditable="true"] {
+  cursor: var(--cursor-text);
+}
+
+/* Help / tooltips — Help.cur */
+[title],
+[data-tooltip],
+abbr[title] {
+  cursor: var(--cursor-help);
+}
+
+/* Draggable (idle) — Move.cur */
+[draggable="true"]:not(:active) {
+  cursor: var(--cursor-grab);
+}
+
+/* Draggable (active) — Grabbing.cur */
+[draggable="true"]:active {
+  cursor: var(--cursor-grabbing);
+}
+
+/* Resize — Horz / Vert / Dgn1 / Dgn2 */
+.resize-horizontal {
+  cursor: var(--cursor-ew-resize);
+}
+.resize-vertical {
+  cursor: var(--cursor-ns-resize);
+}
+.resize-nwse {
+  cursor: var(--cursor-nwse-resize);
+}
+.resize-nesw {
+  cursor: var(--cursor-nesw-resize);
+}
+
+/* Zoom — Zoom-in / Zoom-out */
+.zoom-in,
+[aria-label*="zoom in" i],
+[data-action="zoom-in"] {
+  cursor: var(--cursor-zoom-in);
+}
+
+.zoom-out,
+[aria-label*="zoom out" i],
+[data-action="zoom-out"] {
+  cursor: var(--cursor-zoom-out);
+}
+
+/* Loading — Busy.ani */
+.loading,
+[aria-busy="true"] {
+  cursor: var(--cursor-wait);
+}
+
+/* Background processing — Work.ani */
+.processing {
+  cursor: var(--cursor-progress);
+}
+
+/* Context menus — Alternate.cur */
+[role="menu"],
+[role="menuitem"] {
+  cursor: var(--cursor-context-menu);
+}
+
+/* Precision / code — Cross.cur */
+.crosshair,
+canvas,
+pre,
+code {
+  cursor: var(--cursor-crosshair);
+}
+
+/* Panning areas — Pan.cur */
+.scrollable {
+  cursor: var(--cursor-pan);
+}
+
+/* Handwritten font elements — Handwriting.cur */
+.handwritten,
+[class*="font-handwritten"] {
+  cursor: var(--cursor-handwriting);
+}
+
+
+
+/* ============================================
+   NAV-LINK CURSOR OVERRIDES
+   data-cursor attribute forces specific cursors
+   on anchor elements, overriding the generic
+   `a { cursor: var(--cursor-pointer) }` rule.
+   ============================================ */
+[data-cursor="handwriting"] {
+  cursor: var(--cursor-handwriting) !important;
+}
+[data-cursor="help"] {
+  cursor: var(--cursor-help) !important;
+}
+[data-cursor="person"] {
+  cursor: var(--cursor-person) !important;
+}
+[data-cursor="context-menu"] {
+  cursor: var(--cursor-context-menu) !important;
+}
+[data-cursor="progress"] {
+  cursor: var(--cursor-progress) !important;
+}
+[data-cursor="pointer"] {
+  cursor: var(--cursor-pointer) !important;
+}
+[data-cursor="pan"] {
+  cursor: var(--cursor-pan) !important;
+}
+
+/* Upload / pin actions — Pin.cur */
+.hero-upload-button,
+[data-upload-trigger] {
+  cursor: var(--cursor-pin);
+}
+
+
+
+/* ============================================
+   TEXT SELECTION STYLING
+   !important overrides Tailwind's
+   selection:bg-primary utilities on inputs.
+   ============================================ */
+
+::selection {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  text-shadow: none;
+}
+
+::-moz-selection {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  text-shadow: none;
 }
 
 .grayscale-theme {

@@ -236,8 +236,9 @@ export default function ComputerMascot({ isTyping = false }: { isTyping?: boolea
         ref={expressionRef}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className="absolute flex flex-col items-center justify-center cursor-pointer pointer-events-auto"
+        className="absolute flex flex-col items-center justify-center pointer-events-auto"
         style={{
+          cursor: 'var(--cursor-pan)',
           top: EXPRESSION_CONFIG.top,
           left: EXPRESSION_CONFIG.left,
           width: EXPRESSION_CONFIG.width,

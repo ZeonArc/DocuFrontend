@@ -73,6 +73,13 @@ export default function Header() {
     { name: "Meet the devs", href: "#meet-the-devs" }
   ]
 
+  const NAV_LINK_DATA_CURSOR: Record<string, string> = {
+    "#features":      HEADER_CONFIG.cursors.navLinkUVPs,
+    "#how-it-works":  HEADER_CONFIG.cursors.navLinkHowItWorks,
+    "#testimonials":  HEADER_CONFIG.cursors.navLinkTestimonials,
+    "#meet-the-devs": HEADER_CONFIG.cursors.navLinkMeetTheDevs,
+  }
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
@@ -129,6 +136,7 @@ export default function Header() {
           >
             <div
               className="absolute flex h-full items-center cursor-pointer"
+              data-cursor={HEADER_CONFIG.cursors.logo || undefined}
               style={{ left: `${HEADER_CONFIG.logo.leftOffset}px`, gap: `${HEADER_CONFIG.brandText.leftGap}px` }}
               onClick={() => { scrollToTop(); showBrandText() }}
               onMouseEnter={() => { setType("hover"); showBrandText() }}
@@ -184,16 +192,15 @@ export default function Header() {
                   key={link.name}
                   href={link.href}
                   className="transition-colors duration-200 hover:underline"
+                  data-cursor={NAV_LINK_DATA_CURSOR[link.href] || undefined}
                   style={{
                     fontSize: `${HEADER_CONFIG.navLinks.fontSize}px`,
                     fontWeight: HEADER_CONFIG.navLinks.fontWeight,
                     fontFamily: HEADER_CONFIG.navLinks.fontFamily,
                     color: HEADER_CONFIG.navLinks.color,
                     letterSpacing: HEADER_CONFIG.navLinks.letterSpacing,
-                    textUnderlineOffset: `${HEADER_CONFIG.navLinks.hoverUnderlineOffset}px`
+                    textUnderlineOffset: `${HEADER_CONFIG.navLinks.hoverUnderlineOffset}px`,
                   }}
-                  onMouseEnter={() => setType("hover")}
-                  onMouseLeave={() => setType("default")}
                   onClick={(e) => {
                     e.preventDefault()
                     const element = document.querySelector(link.href)
@@ -278,15 +285,14 @@ export default function Header() {
                     key={link.name}
                     href={link.href}
                     className="transition-colors duration-200 hover:underline"
+                    data-cursor={NAV_LINK_DATA_CURSOR[link.href] || undefined}
                     style={{
                       fontSize: `${HEADER_CONFIG.mobileMenu.menuLinkFontSize}px`,
                       fontWeight: HEADER_CONFIG.mobileMenu.menuLinkFontWeight,
                       fontFamily: HEADER_CONFIG.mobileMenu.menuLinkFontFamily,
                       color: HEADER_CONFIG.navLinks.color,
-                      textUnderlineOffset: `${HEADER_CONFIG.navLinks.hoverUnderlineOffset}px`
+                      textUnderlineOffset: `${HEADER_CONFIG.navLinks.hoverUnderlineOffset}px`,
                     }}
-                    onMouseEnter={() => setType("hover")}
-                    onMouseLeave={() => setType("default")}
                     onClick={(e) => {
                       e.preventDefault()
                       const element = document.querySelector(link.href)

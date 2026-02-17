@@ -1,0 +1,1 @@
+[    1493ms] [WARNING] Image with src "/hero-body.png" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes @ http://localhost:3000/_next/static/chunks/2963f_next_dist_45888d50._.js:2297
