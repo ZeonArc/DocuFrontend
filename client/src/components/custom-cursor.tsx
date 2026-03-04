@@ -11,8 +11,31 @@ const CursorContext = createContext<{
 }>({ type: "default", setType: () => {} })
 
 const h = CURSOR_CONFIG.hotspots
-const c = (file: string, x: number, y: number, fb: string) =>
-  `url("/cursors/${file}") ${x} ${y}, ${fb}`
+
+// Helper to scale cursors using modern CSS image-set
+const c = (file: string, x: number, y: number, fb: string) => {
+  if (typeof window === 'undefined') return `url("/cursors/${file}") ${x} ${y}, ${fb}`
+  
+  const scale = 2 // Reduces cursor size to 50%
+  const cx = Math.round(x / scale)
+  const cy = Math.round(y / scale)
+  const curUrl = `url("/cursors/${file}")`
+  
+  const d = document.createElement('div')
+  
+  // Try standard image-set
+  const std = `image-set(${curUrl} ${scale}x) ${cx} ${cy}, ${fb}`
+  d.style.cursor = std
+  if (d.style.cursor.includes('image-set')) return std
+  
+  // Try webkit-prefixed image-set
+  const webkit = `-webkit-image-set(${curUrl} ${scale}x) ${cx} ${cy}, ${fb}`
+  d.style.cursor = webkit
+  if (d.style.cursor.includes('-webkit-image-set')) return webkit
+  
+  // Fallback
+  return `${curUrl} ${x} ${y}, ${fb}`
+}
 
 // Used when programmatically setting cursor during scroll mode
 const CURSOR_MAP: Record<CursorType, string> = {

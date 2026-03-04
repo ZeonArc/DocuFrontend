@@ -40,7 +40,7 @@ html {
   --radius-sm: calc(var(--radius) - 4px);
   --font-family-comic: "nitti-mostro-comic-shadow", sans-serif;
   --font-family-header: "canada-type-gibson", sans-serif;
-  --font-family-body: "kanit", sans-serif;
+  --font-family-body: var(--font-kanit), sans-serif;
   --font-family-accent: "lumios-marker", sans-serif;
   --font-family-handwritten: "segoe-print", sans-serif;
 }
@@ -52,13 +52,13 @@ html {
     --ink: #000000;
     --font-comic: "nitti-mostro-comic-shadow", sans-serif;
     --font-header: "canada-type-gibson", sans-serif;
-    --font-body: "kanit", sans-serif;
+    --font-body: var(--font-kanit), sans-serif;
     --font-accent: "lumios-marker", sans-serif;
     --font-handwritten: "segoe-print", sans-serif;
 
-    /* ============================================
-       CUSTOM CURSORS - Bibata Modern Ice (21 total)
-       ============================================ */
+/* ============================================
+   CUSTOM CURSORS - Bibata Modern Ice (21 total)
+   ============================================ */
     --cursor-default: url("/cursors/Pointer.cur"), auto;
     --cursor-pointer: url("/cursors/Link.cur"), pointer;
     --cursor-text: url("/cursors/Text.cur"), text;
@@ -155,6 +155,7 @@ html {
   display: none; /* Chrome, Safari, Edge */
 }
 
+
 /* ============================================
    BIBATA CURSOR MAPPINGS
    Unlayered CSS — highest cascade priority,
@@ -246,13 +247,6 @@ input,
 textarea,
 [contenteditable="true"] {
   cursor: var(--cursor-text);
-}
-
-/* Help / tooltips — Help.cur */
-[title],
-[data-tooltip],
-abbr[title] {
-  cursor: var(--cursor-help);
 }
 
 /* Draggable (idle) — Move.cur */
@@ -363,8 +357,6 @@ code {
 [data-upload-trigger] {
   cursor: var(--cursor-pin);
 }
-
-
 
 /* ============================================
    TEXT SELECTION STYLING

@@ -70,7 +70,9 @@ export default function Header() {
     { name: "UVPs", href: "#features" },
     { name: "How does it work?", href: "#how-it-works" },
     { name: "Testimonials", href: "#testimonials" },
-    { name: "Meet the devs", href: "#meet-the-devs" }
+    { name: "Meet the devs", href: "#meet-the-devs" },
+    { name: "Prefs", href: "/preferences" },
+    { name: "Editor", href: "/editor" }
   ]
 
   const NAV_LINK_DATA_CURSOR: Record<string, string> = {
@@ -202,13 +204,15 @@ export default function Header() {
                     textUnderlineOffset: `${HEADER_CONFIG.navLinks.hoverUnderlineOffset}px`,
                   }}
                   onClick={(e) => {
-                    e.preventDefault()
-                    const element = document.querySelector(link.href)
-                    if (element) {
-                      if (mobileMenuOpen) setMobileMenuOpen(false)
-                      const yOffset = -80
-                      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
-                      window.scrollTo({ top: y, behavior: 'smooth' })
+                    if (link.href.startsWith("#")) {
+                      e.preventDefault()
+                      const element = document.querySelector(link.href)
+                      if (element) {
+                        if (mobileMenuOpen) setMobileMenuOpen(false)
+                        const yOffset = -80
+                        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
+                        window.scrollTo({ top: y, behavior: 'smooth' })
+                      }
                     }
                   }}
                 >
@@ -294,13 +298,15 @@ export default function Header() {
                       textUnderlineOffset: `${HEADER_CONFIG.navLinks.hoverUnderlineOffset}px`,
                     }}
                     onClick={(e) => {
-                      e.preventDefault()
-                      const element = document.querySelector(link.href)
-                      if (element) {
-                        setMobileMenuOpen(false)
-                        const yOffset = -80
-                        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
-                        window.scrollTo({ top: y, behavior: 'smooth' })
+                      if (link.href.startsWith("#")) {
+                        e.preventDefault()
+                        const element = document.querySelector(link.href)
+                        if (element) {
+                          setMobileMenuOpen(false)
+                          const yOffset = -80
+                          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
+                          window.scrollTo({ top: y, behavior: 'smooth' })
+                        }
                       }
                     }}
                   >
