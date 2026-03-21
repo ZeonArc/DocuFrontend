@@ -1,80 +1,32 @@
-Implementation Plan: Revamp Features & Marquee
-Goal Description
-Marquee: Implement a seamless infinite scrolling marquee with tech logos (grayscale to color on hover).
-Video Integration: Replace static images/animations in "What Makes Us Different" and "Features" sections with specific video assets. Ensure alternating layouts, white backgrounds for videos, no borders between content and video, and "fit" aspect ratio.
-User Preferences & Requirements
-Marquee: Logo content, Grayscale â†’ Color (Hover), Pause on Hover, Medium Speed.
-Videos:
-Alternating sides (White side).
-No borders separating video from content.
-Embedded as object-fit: contain.
-Mappings:
-WhatMakesUsDifferent
- â†’ 
-what-makes-us-different.mp4
-Features
- (75%) â†’ 75%.mp4
-Features
- (Contextual Code) â†’ 
-contextual-code-intelligence.mp4
-Features
- (Asset Generation) â†’ 
-asset-generation-with-google-flow.mp4
-Proposed Changes
-1. Asset Management
-[NEW] Public Assets
-Create directory: client/public/videos/
-Move/Copy the following files from Website Assets/ to client/public/videos/:
-what-makes-us-different.mp4
-75%.mp4
-contextual-code-intelligence.mp4
-asset-generation-with-google-flow.mp4
-2. [Component] TechMarquee.tsx
-[MODIFY] 
-TechMarquee.tsx
-Implementation: GSAP infinite loop (xPercent).
-Content: Tech Icons (React, Next, Tailwind, etc.).
-Style: Flex row, gap-16+, grayscale by default.
-Hover: Remove grayscale, pause animation.
-3. [Component] WhatMakesUsDifferent.tsx
-[MODIFY] 
-WhatMakesUsDifferent.tsx
-Layout:
-Left: Text Content (Grey background #e0e0e0).
-Right: Video (White background bg-white).
-Changes:
-Remove canvas animation logic.
-Remove border-r-2 from the Left container to remove the separator.
-Set Right container background to white.
-Insert <video src="/videos/what-makes-us-different.mp4" ... /> in the Right container.
-Video Style: w-full h-full object-contain.
-4. [Component] Features.tsx
-[MODIFY] 
-Features.tsx
-Section 1 (75%):
-Left: Video (75%.mp4) on White background.
-Right: Text on Grey background.
-Action: Replace generic Image with <video>. Remove border-r-2 from Left container.
-Section 2 (Contextual Code Intelligence):
-Left: Text on Grey background.
-Right: Video (
-contextual-code-intelligence.mp4
-) on White background.
-Action: Replace Wizard Image with <video>. Remove border-r-2 from Left container.
-Section 3 (Asset Generation):
-Left: Video (
-asset-generation-with-google-flow.mp4
-) on White background.
-Right: Text on Grey background.
-Action: Replace Lab Image with <video>. Remove border-r-2 from Left container.
-General:
-Ensure all video containers have bg-white.
-Ensure all videos have object-contain.
-Remove explicit borders between the flex columns.
-Verification Plan
-Marquee: Check infinite scroll, hover pause, color change.
-Videos:
-Verify all 4 videos play automatically (autoplay, muted, loop).
-Verify "Fit" ratio (no cropping).
-Verify no vertical borders between text and video.
-Verify alternating layout (Right -> Left -> Right -> Left video placement relative to scroll/page order).
+# Testimonial Animation Implementation Plan
+
+## Goal Description
+The objective is to refine the [Testimonials.tsx](file:///d:/Dark%20Phoenix/Visual%20Code/docufront/DocuFrontend/client/src/components/Testimonials.tsx) component to perfectly match the frame-by-frame reference animation provided by the user. The animation involves scattered words in 3D space flying in to form a tightly packed paragraph block of client names. Furthermore, the section must replicate the full-page layout and aesthetic of the "How does it work?" ([WhatMakesUsDifferent.tsx](file:///d:/Dark%20Phoenix/Visual%20Code/docufront/DocuFrontend/client/src/components/WhatMakesUsDifferent.tsx)) section by occupying the full screen and utilizing a `#e0e0e0` (grey) background.
+
+## User Review Required
+Please review the proposed changes below. 
+> [!NOTE]
+> The current [Testimonials.tsx](file:///d:/Dark%20Phoenix/Visual%20Code/docufront/DocuFrontend/client/src/components/Testimonials.tsx) already has the foundational GSAP logic to animate words flying in from random 3D coordinates. We will remove the initial black background (`#080808`) flash that is currently hardcoded and swap it to the requested `#e0e0e0` grey background.
+> Also, please confirm if the text should remain the same color or be adjusted to ensure high contrast against the new grey background.
+
+## Proposed Changes
+
+### [client/src/components/Testimonials.tsx](file:///d:/Dark%20Phoenix/Visual%20Code/docufront/DocuFrontend/client/src/components/Testimonials.tsx)
+- **Layout & Sizing:** Change `min-h-[60vh]` to `min-h-screen` in the `<section>` container to ensure it behaves as a full-page scroll section like "How does it work?".
+- **Background Color Fix:** 
+  - Remove the hardcoded initial `gsap.set` background color of `#080808` so there is no black flash.
+  - Set the background color directly to `#e0e0e0` (or its respective `CONFIG.container.backgroundColor` if mapped to `#e0e0e0`) permanently.
+- **Animation Refinement:** 
+  - Words will start completely scattered with `opacity: 0` (so they don't abruptly appear) and scale up while flying in.
+  - Remove the timeline step that animates the background color, keeping it a solid `#e0e0e0`.
+  - Adjust the initial color of the words from `#4a4a4a` to something that blends or fades clearly onto the grey `#e0e0e0` canvas without looking out of place before turning into their final dark font color.
+
+## Verification Plan
+### Automated Testing
+- Since there are no unit tests for GSAP animations, verification will rely on visual inspection in the browser.
+### Manual Verification
+- We will start the local development server (if not already running).
+- I will physically open the local test bed using the browser tool and scroll down to the Testimonial section.
+- I will confirm the initial background color is `#e0e0e0`.
+- I will verify the words start invisible, fly in from randomized 3D depths, and assemble cleanly without visual judder.
+- I will ensure the section fully occupies the screen exactly like the "How does it work?" section.

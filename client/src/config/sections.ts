@@ -338,7 +338,7 @@ export const FEATURES_TYPOGRAPHY = {
       paddingRight: 2,
     },
     container: {
-      backgroundColor: "#e0e0e0",
+      backgroundColor: "#f2f2f2",
     },
   },
 
@@ -474,7 +474,7 @@ export const FEATURES_TYPOGRAPHY = {
       paddingRight: 16,
     },
     container: {
-      backgroundColor: "#e0e0e0",
+      backgroundColor: "#f2f2f2",
     },
   },
 } as const;
@@ -493,7 +493,7 @@ export const TESTIMONIALS_TYPOGRAPHY = {
     fontSizeMobile: "40px",
     fontSizeDesktop: "69px",
     fontWeight: 700,
-    color: "#000000",
+    color: "#303030",
     marginBottom: "32px",
     xOffset: 0,
     yOffset: 0,
@@ -503,7 +503,7 @@ export const TESTIMONIALS_TYPOGRAPHY = {
     fontSizeMobile: "44px",
     fontSizeDesktop: "76px",
     fontStyle: "italic" as const,
-    color: "#000000",
+    color: "#303030",
     xOffset: 0,
     yOffset: 0,
   },
@@ -513,9 +513,47 @@ export const TESTIMONIALS_TYPOGRAPHY = {
     opacity: 0.8,
     maxWidth: "72rem",
   },
+  // ── Scatter offsets ───────────────────────────────────────────────────────
+  // Controls how far words spread during the mid-animation state.
+  // Reduce xRange/yRange if words are being clipped at the edges.
+  scatter: {
+    xRange: 500,   // px — max horizontal throw from center
+    yRange: 350,   // px — max vertical throw from center
+    scaleMin: 2.0, // minimum starting scale
+    scaleMax: 4.0, // maximum starting scale
+  },
+  // ── Word cloud internal offsets ───────────────────────────────────────────
+  // Extra padding INSIDE the word cloud block itself (between text and its own edges).
+  // For the LEFT/RIGHT space between the word cloud and the section edges,
+  // adjust container.paddingLeft and container.paddingRight below instead.
+  offset: {
+    top: "24px",   // internal top padding of the word cloud block
+    right: "0px",  // internal right padding (NOTE: use container.paddingRight for side spacing)
+    bottom: "24px",// internal bottom padding of the word cloud block
+    left: "0px",   // internal left padding (NOTE: use container.paddingLeft for side spacing)
+  },
+  // ── Animation speed ───────────────────────────────────────────────────────
+  // Controls the timing and pacing of the animation sequence.
+  animation: {
+    scrollMultiplier: 200, // % of viewport height the section scrolls while pinned (e.g. 200 = +=200%)
+    scrub: 0.8,            // GSAP scrub lag in seconds — lower = snappier response to scroll
+    anchorStagger: 0.04,   // seconds between each anchor word landing
+    floodAmount: 0.4,      // fraction of scroll window the flood phase spans (0–1)
+    snapDuration: 0.20,    // seconds each word takes to snap into place
+  },
+  // ── Section container padding ────────────────────────────────────────────
+  // Controls space between the section boundary and its contents.
+  // ✔ paddingLeft / paddingRight — the LEFT and RIGHT grey space you see in the red markers.
+  //   Decrease these to make the word cloud appear wider (closer to the screen edges).
+  //   Increase to push the word cloud inward (more breathing room on the sides).
+  // ✔ paddingTop — space above the heading.
+  // ✔ paddingBottom — space below the word cloud (before the footer).
   container: {
-    paddingAll: "32px",
-    backgroundColor: "#e8e8e8",
+    paddingTop: "0px",
+    paddingRight: "0px",  // ← decrease this to shrink left gap
+    paddingBottom: "0px",
+    paddingLeft: "0px",   // ← decrease this to shrink right gap
+    backgroundColor: "#e0e0e0",
     borderColor: "#000000",
     borderWidth: "2px",
   },

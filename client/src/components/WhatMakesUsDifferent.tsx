@@ -37,7 +37,7 @@ export default function WhatMakesUsDifferent() {
     <section
       id="how-it-works"
       ref={sectionRef}
-      className="w-full min-h-screen flex flex-col md:flex-row overflow-hidden border-b-2 border-black"
+      className="w-full min-h-screen flex flex-col md:flex-row overflow-hidden"
     >
       {/* Left Content - Gray Background */}
       <div

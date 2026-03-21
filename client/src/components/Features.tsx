@@ -89,9 +89,9 @@ export default function Features() {
   return (
     <div id="features" ref={containerRef} className="w-full">
       {/* Section 1: Cat / Stats */}
-      <section className="stat-section feature-section w-full min-h-screen flex flex-col md:flex-row border-b-2 border-black">
-        {/* Left: Video (White) */}
-        <div className="w-full md:w-1/2 flex items-center justify-center bg-white overflow-hidden">
+      <section className="stat-section feature-section w-full min-h-screen flex flex-col md:flex-row">
+        {/* Left: Video (Light Grey) */}
+        <div className="w-full md:w-1/2 flex items-center justify-center bg-[#f2f2f2] overflow-hidden">
            <video
               autoPlay
               loop
@@ -160,8 +160,6 @@ export default function Features() {
                 width: stats.bodyText.width,
                 height: stats.bodyText.height,
                 // Border/Padding Support
-                borderLeft: `${stats.bodyText.borderLeftWidth}px solid ${stats.bodyText.borderColor}`,
-                borderRight: `${stats.bodyText.borderRightWidth}px solid ${stats.bodyText.borderColor}`,
                 paddingLeft: `${stats.bodyText.paddingLeft}px`,
                 paddingRight: `${stats.bodyText.paddingRight}px`,
               } as React.CSSProperties}
@@ -213,7 +211,7 @@ export default function Features() {
       </section>
 
       {/* Section 2: Contextual Code Intelligence (Wizard) */}
-      <section className="feature-section w-full min-h-screen flex flex-col md:flex-row border-b-2 border-black">
+      <section className="feature-section w-full min-h-screen flex flex-col md:flex-row">
         {/* Left: Text (Gray) */}
         <div
           className="w-full md:w-1/2 p-12 flex flex-col justify-center order-2 md:order-1"
@@ -252,8 +250,6 @@ export default function Features() {
                  transform: `translate(${codeIntel.body.xOffset}px, ${codeIntel.body.yOffset}px)`,
                  width: codeIntel.body.width,
                  height: codeIntel.body.height,
-                 borderLeft: `${codeIntel.body.borderLeftWidth}px solid ${codeIntel.body.borderColor}`,
-                 borderRight: `${codeIntel.body.borderRightWidth}px solid ${codeIntel.body.borderColor}`,
                  paddingLeft: `${codeIntel.body.paddingLeft}px`,
                  paddingRight: `${codeIntel.body.paddingRight}px`,
                } as React.CSSProperties}
@@ -317,9 +313,9 @@ Laborum tempor cupidatat est qui aute dolore nisi quis est
       </section>
 
       {/* Section 3: Asset Generation */}
-      <section className="feature-section w-full min-h-screen flex flex-col md:flex-row border-b-2 border-black">
-         {/* Left: Video (White) */}
-         <div className="w-full md:w-1/2 flex items-center justify-center bg-white overflow-hidden">
+      <section className="feature-section w-full min-h-screen flex flex-col md:flex-row">
+         {/* Left: Video (Light Grey) */}
+         <div className="w-full md:w-1/2 flex items-center justify-center bg-[#f2f2f2] overflow-hidden">
            <video
               autoPlay
               loop
@@ -379,8 +375,6 @@ Laborum tempor cupidatat est qui aute dolore nisi quis est
                  height: assetGen.body.height,
                  textAlign: "justify",
                  // Border/Padding Support
-                 borderLeft: `${assetGen.body.borderLeftWidth}px solid ${assetGen.body.borderColor}`,
-                 borderRight: `${assetGen.body.borderRightWidth}px solid ${assetGen.body.borderColor}`,
                  paddingLeft: `${assetGen.body.paddingLeft}px`,
                  paddingRight: `${assetGen.body.paddingRight}px`,
                } as React.CSSProperties}
@@ -408,8 +402,6 @@ excepteur qui occaecat do fugiat. Laboris ut ut dolor ullamco.
                  height: assetGen.mutedBody.height,
                  textAlign: "justify",
                  // Border/Padding Support
-                 borderLeft: `${assetGen.mutedBody.borderLeftWidth}px solid ${assetGen.mutedBody.borderColor}`,
-                 borderRight: `${assetGen.mutedBody.borderRightWidth}px solid ${assetGen.mutedBody.borderColor}`,
                  paddingLeft: `${assetGen.mutedBody.paddingLeft}px`,
                  paddingRight: `${assetGen.mutedBody.paddingRight}px`,
                } as React.CSSProperties}

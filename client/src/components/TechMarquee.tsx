@@ -59,7 +59,7 @@ export default function TechMarquee() {
   return (
     <div 
       ref={containerRef}
-      className="w-full bg-white border-b-2 border-black overflow-hidden py-8 md:py-12 z-20 relative cursor-default"
+      className="w-full bg-white overflow-hidden py-8 md:py-12 z-20 relative cursor-default"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
