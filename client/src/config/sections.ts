@@ -585,6 +585,18 @@ export const FOOTER_TYPOGRAPHY = {
     xOffset: 0,
     yOffset: 0,
   },
+  buyMeACoffeeButton: {
+    height: "250px",
+    width: "auto",
+    xOffset: 0,
+    yOffset: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingLeft: 0,
+    paddingRight: 0,
+    marginTop: 0,
+    marginBottom: -50,
+  },
   chatBubble: {
     fontFamily: "var(--font-body)",
     fontSize: "12px",
@@ -600,6 +612,12 @@ export const FOOTER_TYPOGRAPHY = {
     yOffset: 0,
     width: "auto",
     height: "auto",
+  },
+  mascotLeft: {
+    width: "20%",
+    height: "auto",
+    xOffset: -30,
+    yOffset: 4,
   },
   creditsSmall: {
     fontFamily: "var(--font-body)",
@@ -634,7 +652,7 @@ export const FOOTER_TYPOGRAPHY = {
   container: {
     paddingY: "64px",
     paddingX: "16px",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#f2f2f2",
     minHeight: "400px",
   },
   cursors: {
