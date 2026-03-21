@@ -12,25 +12,7 @@ export default function WhatMakesUsDifferent() {
   const textRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      // Text Reveal Stagger
-      if (textRef.current) {
-        gsap.from(textRef.current.children, {
-            scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 70%",
-            toggleActions: "play reverse play reverse",
-            },
-            y: 50,
-            opacity: 0,
-            duration: 1,
-            stagger: 0.2,
-            ease: "power3.out"
-        });
-      }
-    }, sectionRef);
-
-    return () => ctx.revert();
+    // No animations requested
   }, []);
 
   return (

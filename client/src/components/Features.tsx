@@ -12,52 +12,7 @@ export default function Features() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // Section Pop-in
-      gsap.from(containerRef.current, {
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top 85%",
-        },
-        scale: 0.95,
-        opacity: 0,
-        duration: 1,
-        ease: "power2.out",
-      });
 
-      // Animate generic sections with a loop for stagger
-      const sections = gsap.utils.toArray(".feature-section");
-      sections.forEach((section: any, index) => {
-        const textItems = section.querySelectorAll(".animate-item > *");
-        gsap.from(textItems, {
-            scrollTrigger: {
-                trigger: section,
-                start: "top 75%",
-                toggleActions: "play reverse play reverse",
-            },
-            y: 30,
-            opacity: 0,
-            duration: 0.8,
-            stagger: 0.1,
-            ease: "power2.out"
-        });
-
-        const img = section.querySelector(".feature-image");
-        if(img) {
-            gsap.from(img, {
-                scrollTrigger: {
-                    trigger: section,
-                    start: "top 75%",
-                    toggleActions: "play reverse play reverse",
-                },
-                scale: 0.8,
-                opacity: 0,
-                rotate: index % 2 === 0 ? -5 : 5,
-                duration: 1.2,
-                ease: "back.out(1.5)",
-                delay: 0.2
-            });
-        }
-      });
 
       // Stat Counter
       const statObj = { val: 0 };
@@ -75,7 +30,6 @@ export default function Features() {
           if(el) el.textContent = Math.ceil(statObj.val) + "%";
         },
       });
-
     }, containerRef);
 
     return () => ctx.revert();
