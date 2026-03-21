@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Github, Twitter, Linkedin, MessageCircle } from "lucide-react";
-import { Button } from "./ui/button";
 import { FOOTER_TYPOGRAPHY as CONFIG } from "@/config/sections";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -21,11 +20,7 @@ export default function Footer() {
           toggleActions: "play reverse play reverse",
         },
       });
-
-      tl.from(".mascot-left", { x: -100, y: 100, opacity: 0, duration: 1, ease: "back.out(1.2)" }, "start")
-        .from(".mascot-right", { x: 100, y: 100, opacity: 0, duration: 1, ease: "back.out(1.2)" }, "start+=0.2")
-        .to(".mascot-bubble", { opacity: 1, y: -10, duration: 0.5, ease: "power2.out" }, "-=0.5")
-        .to(".footer-credits", { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, "-=0.3");
+      tl.to(".footer-credits", { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" });
     }, containerRef);
 
     return () => ctx.revert();
@@ -47,34 +42,31 @@ export default function Footer() {
     >
 
         {/* Mascots positioned absolute at bottom corners */}
-        <div className="absolute bottom-0 left-0 w-32 md:w-56 z-0">
-            <img
-                src="/mascot1.png"
-                alt="Mascot Left"
-                className="w-full h-auto object-contain mascot-left origin-bottom-left"
+        <div 
+          className="absolute bottom-0 left-0 z-0 origin-bottom-left" 
+          style={{ 
+            zIndex: 0,
+            width: CONFIG.mascotLeft.width,
+            height: CONFIG.mascotLeft.height,
+            transform: `translate(${CONFIG.mascotLeft.xOffset}px, ${CONFIG.mascotLeft.yOffset}px)`,
+          }}
+        >
+            <video
+                src="/videos/footer-d4rkpho3nix.mp4"
+                className="w-full h-full object-contain mascot-left cursor-pointer"
+                muted
+                playsInline
+                onMouseEnter={(e) => {
+                  const video = e.currentTarget;
+                  if (video.paused) {
+                    if (video.currentTime === video.duration) {
+                      video.currentTime = 0;
+                    }
+                    video.play();
+                  }
+                }}
             />
-             {/* Chat Bubble for Boy */}
-             <div
-               className="absolute -top-16 left-10 rounded-xl hidden md:block opacity-0 mascot-bubble"
-               style={{
-                 fontFamily: CONFIG.chatBubble.fontFamily,
-                 fontSize: CONFIG.chatBubble.fontSize,
-                 fontWeight: CONFIG.chatBubble.fontWeight,
-                 color: CONFIG.chatBubble.color,
-                 backgroundColor: CONFIG.chatBubble.backgroundColor,
-                 borderColor: CONFIG.chatBubble.borderColor,
-                 borderWidth: CONFIG.chatBubble.borderWidth,
-                 borderStyle: "solid",
-                 borderRadius: CONFIG.chatBubble.borderRadius,
-                 padding: CONFIG.chatBubble.padding,
-                 boxShadow: CONFIG.chatBubble.shadow,
-                 transform: `translate(${CONFIG.chatBubble.xOffset}px, ${CONFIG.chatBubble.yOffset}px)`,
-                 width: CONFIG.chatBubble.width,
-                 height: CONFIG.chatBubble.height,
-               }}
-             >
-                Cool, right?
-             </div>
+
         </div>
         <div className="absolute bottom-0 right-0 w-32 md:w-56 z-0">
              <img
@@ -87,31 +79,37 @@ export default function Footer() {
         {/* Center Content: CTA + Socials */}
         <div className="flex flex-col items-center justify-center z-10 w-full max-w-2xl mt-8">
             {/* CTA Button */}
-            <div className="mb-8">
-                <Button
-                  className="rounded-full hover:scale-105 transition-all border-2 border-transparent"
+            <div className="relative z-10">
+                <a 
+                  href="https://buymeacoffee.com/d4rkpho3nix" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-block hover:scale-105 transition-all"
                   style={{
-                    fontFamily: CONFIG.ctaButton.fontFamily,
-                    fontSize: CONFIG.ctaButton.fontSize,
-                    fontWeight: CONFIG.ctaButton.fontWeight,
-                    color: CONFIG.ctaButton.color,
-                    backgroundColor: CONFIG.ctaButton.backgroundColor,
-                    borderRadius: CONFIG.ctaButton.borderRadius,
-                    paddingLeft: CONFIG.ctaButton.paddingX,
-                    paddingRight: CONFIG.ctaButton.paddingX,
-                    paddingTop: CONFIG.ctaButton.paddingY,
-                    paddingBottom: CONFIG.ctaButton.paddingY,
-                    boxShadow: CONFIG.ctaButton.shadow,
-                    transform: `translate(${CONFIG.ctaButton.xOffset}px, ${CONFIG.ctaButton.yOffset}px)`,
+                    paddingTop: CONFIG.buyMeACoffeeButton.paddingTop,
+                    paddingBottom: CONFIG.buyMeACoffeeButton.paddingBottom,
+                    paddingLeft: CONFIG.buyMeACoffeeButton.paddingLeft,
+                    paddingRight: CONFIG.buyMeACoffeeButton.paddingRight,
+                    marginTop: CONFIG.buyMeACoffeeButton.marginTop,
+                    marginBottom: CONFIG.buyMeACoffeeButton.marginBottom,
+                    transform: `translate(${CONFIG.buyMeACoffeeButton.xOffset}px, ${CONFIG.buyMeACoffeeButton.yOffset}px)`,
                   }}
                 >
-                    Play as a Guest
-                </Button>
+                  <img 
+                    src="/footer-buy-us-a-coffee.png" 
+                    alt="Buy me a coffee" 
+                    className="object-contain"
+                    style={{
+                      height: CONFIG.buyMeACoffeeButton.height,
+                      width: CONFIG.buyMeACoffeeButton.width,
+                    }}
+                  />
+                </a>
             </div>
 
             {/* Social Links */}
             <div
-              className="flex"
+              className="flex relative z-20"
               style={{
                 gap: CONFIG.socialLinks.gap,
                 marginBottom: CONFIG.socialLinks.marginBottom,
