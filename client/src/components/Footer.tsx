@@ -52,8 +52,9 @@ export default function Footer() {
           }}
         >
             <video
-                src="/videos/footer-d4rkpho3nix.mp4"
+                src="/videos/footer-phoenix.mp4"
                 className="w-full h-full object-contain mascot-left cursor-pointer"
+                preload="auto"
                 muted
                 playsInline
                 onMouseEnter={(e) => {
@@ -69,9 +70,11 @@ export default function Footer() {
 
         </div>
         <div className="absolute bottom-0 right-0 w-32 md:w-56 z-0">
+             {/* eslint-disable-next-line @next/next/no-img-element */}
              <img
                 src="/mascot.png"
                 alt="Mascot Right"
+                loading="eager"
                 className="w-full h-auto object-contain mascot-right origin-bottom-right"
             />
         </div>
@@ -95,8 +98,9 @@ export default function Footer() {
                     transform: `translate(${CONFIG.buyMeACoffeeButton.xOffset}px, ${CONFIG.buyMeACoffeeButton.yOffset}px)`,
                   }}
                 >
-                  <img 
-                    src="/footer-buy-us-a-coffee.png" 
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/footer-buy-us-a-coffee.png"
                     alt="Buy me a coffee" 
                     className="object-contain"
                     style={{

@@ -1,4 +1,8 @@
 {
     "claudeCode.allowDangerouslySkipPermissions": true,
-    "claudeCode.useTerminal": true
+    "claudeCode.useTerminal": true,
+    "claude-code.environmentVariables": [
+
+    ],
+    "claude-code.useTerminal": true
 }

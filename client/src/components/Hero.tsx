@@ -6,6 +6,9 @@ import { Input } from "./ui/input";
 import Image from "next/image";
 import ComputerMascot from "./ComputerMascot";
 import { HERO_TYPOGRAPHY as HERO_CONFIG } from "@/config/sections";
+import { useRouter } from "next/navigation";
+import { parseRepoUrl, initializeSession, analyzeRepo } from "@/lib/api";
+import { useSession } from "@/hooks/useSession";
 
 export default function Hero() {
   const containerRef = useRef(null);
@@ -13,8 +16,15 @@ export default function Hero() {
   const mascotRef = useRef(null);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [repoUrl, setRepoUrl] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const { setSessionId, setRepoInfo } = useSession();
 
-  const handleTyping = () => {
+  const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRepoUrl(e.target.value);
+    setError(null);
     setIsTyping(true);
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
@@ -23,17 +33,42 @@ export default function Hero() {
     }, 800);
   };
 
+  const handleSubmit = async () => {
+    if (isLoading) return;
+
+    const parsed = parseRepoUrl(repoUrl);
+    if (!parsed) {
+      setError("Please enter a valid GitHub repository URL");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const data = await initializeSession(repoUrl);
+      setSessionId(data.session_id);
+      setRepoInfo(data.repo_info);
+      analyzeRepo(data.session_id).catch(console.error);
+      router.push("/preferences");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to connect to repository"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.from(".hero-char", {
-        y: 100,
-        opacity: 0,
-        duration: 0.8,
-        stagger: 0.05,
-        ease: "back.out(1.7)",
-        delay: 0.2,
-      });
-
       gsap.from(mascotRef.current, {
         x: 50,
         opacity: 0,
@@ -108,9 +143,7 @@ export default function Hero() {
             className="md:text-[100px]"
           >
              <div className="flex overflow-hidden">
-                {HERO_CONFIG.title.text.split("").map((char, i) => (
-                  <span key={i} className="hero-char inline-block">{char}</span>
-                ))}
+                {HERO_CONFIG.title.text}
              </div>
           </div>
         </h1>
@@ -139,7 +172,7 @@ export default function Hero() {
             className="relative flex items-center"
             style={{
               backgroundColor: HERO_CONFIG.inputBox.containerBackgroundColor,
-              borderColor: HERO_CONFIG.inputBox.borderColor,
+              borderColor: error ? "#ef4444" : HERO_CONFIG.inputBox.borderColor,
               borderWidth: `${HERO_CONFIG.inputBox.borderWidth}px`,
               borderStyle: "solid",
               borderRadius: `${HERO_CONFIG.inputBox.borderRadius}px`,
@@ -161,13 +194,20 @@ export default function Hero() {
                 color: HERO_CONFIG.inputBox.textColor,
                 "--placeholder-color": HERO_CONFIG.inputBox.placeholderColor,
               } as React.CSSProperties}
+              value={repoUrl}
               onChange={handleTyping}
+              onKeyDown={handleKeyDown}
               onBlur={() => {
                 setIsTyping(false);
                 if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
               }}
             />
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <p className="text-red-500 text-sm font-bold mt-2">{error}</p>
+          )}
 
           {/* Upload Button */}
           <button
@@ -179,8 +219,20 @@ export default function Hero() {
               transform: 'translateY(-50%)',
               width: `${HERO_CONFIG.uploadButton.size}px`,
               height: `${HERO_CONFIG.uploadButton.size}px`,
+              opacity: isLoading ? 0.5 : 1,
             }}
+            onClick={handleSubmit}
+            disabled={isLoading}
           >
+            {isLoading ? (
+              <span
+                className="block rounded-full border-4 border-black border-t-transparent animate-spin"
+                style={{
+                  width: `${HERO_CONFIG.uploadButton.size}px`,
+                  height: `${HERO_CONFIG.uploadButton.size}px`,
+                }}
+              />
+            ) : (
               <Image
                 src="/hero-upload-button.png"
                 alt="Upload"
@@ -188,6 +240,7 @@ export default function Hero() {
                 height={HERO_CONFIG.uploadButton.size}
                 className="w-full h-full object-contain"
               />
+            )}
           </button>
         </div>
       </div>

@@ -70,8 +70,9 @@ export default function TechMarquee() {
         {/* Triple duplication to be safe on ultra-wide screens */}
         {[...LOGOS, ...LOGOS, ...LOGOS].map((logo, i) => (
           <div key={i} className="flex items-center px-8 md:px-12">
-            <img 
-               src={logo.url} 
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+               src={logo.url}
                alt={logo.name}
                className="marquee-logo h-10 md:h-14 w-auto object-contain transition-all duration-300"
                style={{ 

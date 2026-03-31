@@ -54,10 +54,10 @@ export const HEADER_TYPOGRAPHY = {
   brandText: {
     text: "DocuGitHub",
     fontSize: 22,
-    fontWeight: 400,
+    fontWeight: 500,
     fontFamily: "kanit",
     color: "#000000",
-    letterSpacing: "0.05em",
+    letterSpacing: "0.025em",
     leftGap: 12,
     xOffset: 0,
     yOffset: 0,
@@ -616,7 +616,7 @@ export const FOOTER_TYPOGRAPHY = {
   mascotLeft: {
     width: "20%",
     height: "auto",
-    xOffset: -30,
+    xOffset: -13,
     yOffset: 4,
   },
   creditsSmall: {

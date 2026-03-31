@@ -303,11 +303,13 @@ textarea,
   cursor: var(--cursor-context-menu);
 }
 
+/* Video scrubbing canvases — always use default cursor */
+canvas {
+  cursor: var(--cursor-default);
+}
+
 /* Precision / code — Cross.cur */
-.crosshair,
-canvas,
-pre,
-code {
+.crosshair {
   cursor: var(--cursor-crosshair);
 }
 
@@ -388,4 +390,9 @@ code {
   .responsive-text {
     font-size: var(--fs-desktop);
   }
+}
+
+/* GPU acceleration for pinned sections */
+.pin-spacer > * {
+  will-change: transform;
 }

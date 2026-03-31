@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Menu, X } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
 import gsap from "gsap"
 import { SplitText } from "gsap/SplitText"
+import { ScrollToPlugin } from "gsap/ScrollToPlugin"
 
-gsap.registerPlugin(SplitText)
+gsap.registerPlugin(SplitText, ScrollToPlugin)
 import { useCursor } from "@/components/custom-cursor"
 import { HEADER_TYPOGRAPHY as HEADER_CONFIG } from "@/config/sections"
 
@@ -31,15 +31,14 @@ export default function Header() {
   useEffect(() => {
     if (!brandTextRef.current) return
     const split = new SplitText(brandTextRef.current, { type: "chars" })
-    gsap.set(split.chars, { xPercent: -100, opacity: 0, scale: 0.6 })
+    gsap.set(split.chars, { xPercent: -110, opacity: 0 })
     brandTlRef.current = gsap.timeline({ paused: true })
       .to(split.chars, {
         xPercent: 0,
         opacity: 1,
-        scale: 1,
         duration: 0.5,
-        stagger: 0.06,
-        ease: "back.out(1.7)",
+        stagger: { each: 0.03, from: "start" },
+        ease: "power3.out",
       })
     return () => {
       brandTlRef.current?.kill()
@@ -67,8 +66,8 @@ export default function Header() {
   const dots = ".".repeat(dotCount)
 
   const navLinks = [
-    { name: "UVPs", href: "#features" },
-    { name: "How does it work?", href: "#how-it-works" },
+    { name: "UVPs", href: "#how-it-works" },
+    { name: "How does it work?", href: "#features" },
     { name: "Testimonials", href: "#testimonials" },
     { name: "Meet the devs", href: "#meet-the-devs" },
     { name: "Prefs", href: "/preferences" },
@@ -76,8 +75,8 @@ export default function Header() {
   ]
 
   const NAV_LINK_DATA_CURSOR: Record<string, string> = {
-    "#features":      HEADER_CONFIG.cursors.navLinkUVPs,
-    "#how-it-works":  HEADER_CONFIG.cursors.navLinkHowItWorks,
+    "#how-it-works":  HEADER_CONFIG.cursors.navLinkUVPs,
+    "#features":      HEADER_CONFIG.cursors.navLinkHowItWorks,
     "#testimonials":  HEADER_CONFIG.cursors.navLinkTestimonials,
     "#meet-the-devs": HEADER_CONFIG.cursors.navLinkMeetTheDevs,
   }
@@ -137,12 +136,10 @@ export default function Header() {
             style={{ pointerEvents: scrolled ? "auto" : "none" }}
           >
             <div
-              className="absolute flex h-full items-center cursor-pointer"
-              data-cursor={HEADER_CONFIG.cursors.logo || undefined}
+              className="absolute flex h-full items-center"
               style={{ left: `${HEADER_CONFIG.logo.leftOffset}px`, gap: `${HEADER_CONFIG.brandText.leftGap}px` }}
               onClick={() => { scrollToTop(); showBrandText() }}
-              onMouseEnter={() => { setType("hover"); showBrandText() }}
-              onMouseLeave={() => setType("default")}
+              onMouseEnter={() => showBrandText()}
             >
               <div
                 className="relative flex-shrink-0 overflow-hidden"
@@ -206,13 +203,11 @@ export default function Header() {
                   onClick={(e) => {
                     if (link.href.startsWith("#")) {
                       e.preventDefault()
-                      const element = document.querySelector(link.href)
-                      if (element) {
-                        if (mobileMenuOpen) setMobileMenuOpen(false)
-                        const yOffset = -80
-                        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
-                        window.scrollTo({ top: y, behavior: 'smooth' })
-                      }
+                      const target = document.querySelector(link.href)
+                      if (!target) return
+                      if (mobileMenuOpen) setMobileMenuOpen(false)
+
+                      gsap.set(window, { scrollTo: { y: target, offsetY: 80 } })
                     }
                   }}
                 >
@@ -300,13 +295,11 @@ export default function Header() {
                     onClick={(e) => {
                       if (link.href.startsWith("#")) {
                         e.preventDefault()
-                        const element = document.querySelector(link.href)
-                        if (element) {
-                          setMobileMenuOpen(false)
-                          const yOffset = -80
-                          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
-                          window.scrollTo({ top: y, behavior: 'smooth' })
-                        }
+                        const target = document.querySelector(link.href)
+                        if (!target) return
+                        setMobileMenuOpen(false)
+
+                        gsap.set(window, { scrollTo: { y: target, offsetY: 80 } })
                       }
                     }}
                   >

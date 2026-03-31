@@ -140,72 +140,74 @@ export default function Testimonials() {
   }, []);
 
   return (
-    <section
-      id="testimonials"
-      ref={containerRef}
-      className="w-full min-h-screen flex flex-col items-center justify-center"
-      style={{
-        paddingTop: CONFIG.container.paddingTop,
-        paddingRight: CONFIG.container.paddingRight,
-        paddingBottom: CONFIG.container.paddingBottom,
-        paddingLeft: CONFIG.container.paddingLeft,
-        backgroundColor: CONFIG.container.backgroundColor,
-      }}
-    >
-      {/* Heading — acts as the section label ("■ Featured Clients" equivalent) */}
-      <h2
-        ref={headingRef}
-        className="responsive-text text-center"
+    <div className="w-full">
+      <section
+        id="testimonials"
+        ref={containerRef}
+        className="w-full min-h-screen flex flex-col items-center justify-center"
         style={{
-          "--fs-mobile": CONFIG.heading.fontSizeMobile,
-          "--fs-desktop": CONFIG.heading.fontSizeDesktop,
-          fontFamily: CONFIG.heading.fontFamily,
-          fontWeight: CONFIG.heading.fontWeight,
-          color: CONFIG.heading.color,
-          marginBottom: CONFIG.heading.marginBottom,
-          transform: `translate(${CONFIG.heading.xOffset}px, ${CONFIG.heading.yOffset}px)`,
-        } as React.CSSProperties}
-      >
-        What people{" "}
-        <span
-          className="responsive-text"
-          style={{
-            "--fs-mobile": CONFIG.accent.fontSizeMobile,
-            "--fs-desktop": CONFIG.accent.fontSizeDesktop,
-            fontFamily: CONFIG.accent.fontFamily,
-            fontStyle: CONFIG.accent.fontStyle,
-            color: CONFIG.accent.color,
-            display: "inline-block",
-            transform: `translate(${CONFIG.accent.xOffset}px, ${CONFIG.accent.yOffset}px)`,
-          } as React.CSSProperties}
-        >
-          Say about us ??
-        </span>
-      </h2>
-
-      {/* Word cloud — words are positioned absolutely by GSAP in scattered state */}
-      <div
-        className="flex flex-wrap items-center justify-center text-center overflow-hidden"
-        style={{
-          columnGap: CONFIG.cloudContainer.gapX,
-          rowGap: CONFIG.cloudContainer.gapY,
-          maxWidth: CONFIG.cloudContainer.maxWidth,
-          paddingTop: CONFIG.offset.top,
-          paddingRight: CONFIG.offset.right,
-          paddingBottom: CONFIG.offset.bottom,
-          paddingLeft: CONFIG.offset.left,
+          paddingTop: CONFIG.container.paddingTop,
+          paddingRight: CONFIG.container.paddingRight,
+          paddingBottom: CONFIG.container.paddingBottom,
+          paddingLeft: CONFIG.container.paddingLeft,
+          backgroundColor: CONFIG.container.backgroundColor,
         }}
       >
-        {companies.map((company, index) => (
+        {/* Heading — acts as the section label ("■ Featured Clients" equivalent) */}
+        <h2
+          ref={headingRef}
+          className="responsive-text text-center"
+          style={{
+            "--fs-mobile": CONFIG.heading.fontSizeMobile,
+            "--fs-desktop": CONFIG.heading.fontSizeDesktop,
+            fontFamily: CONFIG.heading.fontFamily,
+            fontWeight: CONFIG.heading.fontWeight,
+            color: CONFIG.heading.color,
+            marginBottom: CONFIG.heading.marginBottom,
+            transform: `translate(${CONFIG.heading.xOffset}px, ${CONFIG.heading.yOffset}px)`,
+          } as React.CSSProperties}
+        >
+          What people{" "}
           <span
-            key={index}
-            className={`cloud-item ${company.size} ${company.font} leading-none`}
-            style={{ fontFamily: `var(${company.fontVar})` }}
+            className="responsive-text"
+            style={{
+              "--fs-mobile": CONFIG.accent.fontSizeMobile,
+              "--fs-desktop": CONFIG.accent.fontSizeDesktop,
+              fontFamily: CONFIG.accent.fontFamily,
+              fontStyle: CONFIG.accent.fontStyle,
+              color: CONFIG.accent.color,
+              display: "inline-block",
+              transform: `translate(${CONFIG.accent.xOffset}px, ${CONFIG.accent.yOffset}px)`,
+            } as React.CSSProperties}
           >
-            {company.name}
+            Say about us ??
           </span>
-        ))}
-      </div>
-    </section>
+        </h2>
+
+        {/* Word cloud — words are positioned absolutely by GSAP in scattered state */}
+        <div
+          className="flex flex-wrap items-center justify-center text-center w-full"
+          style={{
+            columnGap: CONFIG.cloudContainer.gapX,
+            rowGap: CONFIG.cloudContainer.gapY,
+            maxWidth: CONFIG.cloudContainer.maxWidth,
+            paddingTop: CONFIG.offset.top,
+            paddingRight: CONFIG.offset.right,
+            paddingBottom: CONFIG.offset.bottom,
+            paddingLeft: CONFIG.offset.left,
+          }}
+        >
+          {companies.map((company, index) => (
+            <span
+              key={index}
+              className={`cloud-item ${company.size} ${company.font} leading-none`}
+              style={{ fontFamily: `var(${company.fontVar})` }}
+            >
+              {company.name}
+            </span>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }

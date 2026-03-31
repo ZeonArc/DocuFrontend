@@ -23,6 +23,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={`${kanit.variable} font-body antialiased`}>
       <head>
         <link rel="stylesheet" href="https://use.typekit.net/kag3qbi.css" />
+        <link rel="preload" href="/videos/footer-d4rkpho3nix.mp4" as="video" type="video/mp4" />
+        <link rel="preload" href="/mascot.png" as="image" />
       </head>
       <body>
         <CursorProvider>{children}</CursorProvider>

@@ -1,44 +1,120 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Github, Star, GitFork, User, UploadCloud, RefreshCw, Send, CheckCircle2, LayoutDashboard } from "lucide-react";
+import { Github, Star, GitFork, User, UploadCloud, CheckCircle2, LayoutDashboard } from "lucide-react";
+import BannerGenerationAnimation from "@/components/BannerGenerationAnimation";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/hooks/useSession";
+import {
+  parseRepoUrl,
+  initializeSession,
+  savePreferences as savePreferencesApi,
+  generateBanner,
+  generateReadme,
+  uploadShowcase,
+  fileToBase64,
+  analyzeRepo,
+} from "@/lib/api";
+import type { Preferences } from "@/lib/api";
+
+// Section name to backend ID mapping
+const SECTION_ID_MAP: Record<string, string> = {
+  "Why this exists": "not_fork",
+  "Features": "features",
+  "Architecture": "architecture",
+  "Quick Start": "quick_start",
+  "Usage": "usage",
+  "Contributing": "contributing",
+  "Maintainers": "maintainers",
+  "Contributors": "contributors",
+  "License": "license",
+  "Support": "support",
+  "Star History Chart": "star_chart",
+};
+
+// Badge name to backend ID mapping
+const BADGE_ID_MAP: Record<string, string> = {
+  "version": "version",
+  "release date": "release_date",
+  "last commit": "last_commit",
+  "license": "license",
+  "contact": "contact",
+};
 
 export default function PreferencesPage() {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
+  const router = useRouter();
+  const { sessionId, repoInfo, bannerUrl, setSessionId, setRepoInfo, setBannerUrl } = useSession();
 
   // --- Slide 1 State (Repo) ---
-  const [isFetchingRepo, setIsFetchingRepo] = useState(true);
-  const [repoData, setRepoData] = useState<{name: string, desc: string, stars: string, forks: string, lang: string} | null>(null);
+  // If user arrives without a session (e.g. direct URL), allow them to enter a repo URL
+  const [fallbackUrl, setFallbackUrl] = useState("");
+  const [isFetchingRepo, setIsFetchingRepo] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // --- Slide 2 State (Structure/Features) ---
   const [format, setFormat] = useState("simple");
   const [preferencesSaved, setPreferencesSaved] = useState(false);
-  
-  const [headings, setHeadings] = useState({
-    "Project Title": true, "Description": true, "Badges": false, "Features": true,
-    "Installation": true, "Usage": true, "Contact": false, "Support": false
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
+
+  const [docMapSections, setDocMapSections] = useState({
+    "Why this exists": true,
+    "Features": true,
+    "Architecture": false,
+    "Quick Start": true,
+    "Usage": true,
+    "Contributing": false,
+    "Maintainers": false,
+    "Contributors": false,
+    "License": true,
+    "Support": false,
+    "Star History Chart": false
   });
 
   const [contactInfo, setContactInfo] = useState("");
   const [supportInfo, setSupportInfo] = useState("");
-  
+
   const [selectedBadges, setSelectedBadges] = useState({
-    version: true, release: false, stars: true, commits: false, collabs: false
+    version: false, "release date": true, "last commit": true, license: false, contact: false
   });
 
   // --- Slide 3 State (AI Assets) ---
   const [bannerPrompt, setBannerPrompt] = useState("");
   const [bannerType, setBannerType] = useState("png");
-  const [isGeneratingAsset, setIsGeneratingAsset] = useState(false);
-  const [assetGenerated, setAssetGenerated] = useState(false);
+  const [styleReferenceFile, setStyleReferenceFile] = useState<File | null>(null);
+  const [styleReferencePreview, setStyleReferencePreview] = useState<string | null>(null);
+  const [objectReferenceFile, setObjectReferenceFile] = useState<File | null>(null);
+  const [objectReferencePreview, setObjectReferencePreview] = useState<string | null>(null);
+  const styleRefInput = useRef<HTMLInputElement>(null);
+  const objectRefInput = useRef<HTMLInputElement>(null);
+
+  // --- Slide 3 Generation State ---
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [animationComplete, setAnimationComplete] = useState(false);
+  const [outputLabel, setOutputLabel] = useState("");
+  const [showLabelCursor, setShowLabelCursor] = useState(false);
+  const [regenCooldown, setRegenCooldown] = useState(0);
+  const [bannerError, setBannerError] = useState<string | null>(null);
 
   // --- Slide 4 State (Extra Media) ---
-  const [screenshots, setScreenshots] = useState<{id: number, name: string}[]>([]);
+  const [screenshots, setScreenshots] = useState<{id: number, name: string, file: File | null, preview: string | null}[]>([]);
+  const [isGeneratingReadme, setIsGeneratingReadme] = useState(false);
+
+  const [shakeContact, setShakeContact] = useState(false);
+  const [shakeSupport, setShakeSupport] = useState(false);
 
   // Actions
   const nextStep = () => {
+    if (step === 1) {
+      const contactRequired = selectedBadges["contact"] && !contactInfo.trim();
+      const supportRequired = docMapSections["Support"] && !supportInfo.trim();
+      if (contactRequired) setShakeContact(true);
+      if (supportRequired) setShakeSupport(true);
+      if (contactRequired || supportRequired) return;
+    }
     setDirection(1);
     setStep((prev) => Math.min(prev + 1, 3));
   };
@@ -48,9 +124,20 @@ export default function PreferencesPage() {
     setStep((prev) => Math.max(prev - 1, 0));
   };
 
-  const handleHeadingToggle = (key: string) => {
-    setPreferencesSaved(false); // Reset save lock if preferences change
-    setHeadings(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
+  const goToStep = (targetStep: number) => {
+    if (targetStep === step) return;
+
+    // Validation for moving forward from Step 2 (Index 1)
+    if (step === 1 && targetStep > 1) {
+      const contactRequired = selectedBadges["contact"] && !contactInfo.trim();
+      const supportRequired = docMapSections["Support"] && !supportInfo.trim();
+      if (contactRequired) setShakeContact(true);
+      if (supportRequired) setShakeSupport(true);
+      if (contactRequired || supportRequired || !preferencesSaved) return;
+    }
+
+    setDirection(targetStep > step ? 1 : -1);
+    setStep(targetStep);
   };
 
   const handleBadgeToggle = (key: string) => {
@@ -63,30 +150,155 @@ export default function PreferencesPage() {
     setFormat(newFormat);
   };
 
-  // Mock repo fetch on mount
-  useEffect(() => {
-    setIsFetchingRepo(true);
-    const timer = setTimeout(() => {
-      setRepoData({
-        name: "DocuGitHub",
-        desc: "A beautifully brutalist next.js frontend architecture featuring heavily stark UI elements and dynamic cursor engines.",
-        stars: "1.2k",
-        forks: "340",
-        lang: "TypeScript"
+  const handleDocMapToggle = (key: string) => {
+    setDocMapSections(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
+  };
+
+  // --- Save Preferences Handler ---
+  const handleSavePreferences = async () => {
+    if (!sessionId) return;
+    setIsSavingPreferences(true);
+
+    const sections = Object.entries(docMapSections)
+      .filter(([, checked]) => checked)
+      .map(([name]) => SECTION_ID_MAP[name] || name);
+
+    const badges = Object.entries(selectedBadges)
+      .filter(([, checked]) => checked)
+      .map(([name]) => BADGE_ID_MAP[name] || name);
+
+    const preferences: Preferences = {
+      tone: format,
+      sections,
+      badges,
+      include_toc: true,
+      contact_info: contactInfo,
+      support_link: supportInfo,
+    };
+
+    try {
+      await savePreferencesApi(sessionId, preferences);
+      setPreferencesSaved(true);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save preferences");
+    } finally {
+      setIsSavingPreferences(false);
+    }
+  };
+
+  // --- Generate Banner Handler ---
+  const handleGenerate = useCallback(async () => {
+    if (!bannerPrompt.trim() || !sessionId) return;
+    setIsGenerating(true);
+    setGeneratedImageUrl(null);
+    setAnimationComplete(false);
+    setOutputLabel("");
+    setShowLabelCursor(false);
+    setBannerError(null);
+
+    try {
+      const styleBase64 = styleReferenceFile ? await fileToBase64(styleReferenceFile) : "";
+      const logoBase64 = objectReferenceFile ? await fileToBase64(objectReferenceFile) : "";
+
+      const result = await generateBanner(sessionId, {
+        user_prompt: bannerPrompt,
+        style_reference: styleBase64,
+        logo_image: logoBase64,
+        banner_type: bannerType,
       });
-      setIsFetchingRepo(false);
-    }, 1500);
-    return () => clearTimeout(timer);
+
+      if (result.success && result.bannerUrl) {
+        setBannerUrl(result.bannerUrl);
+        setGeneratedImageUrl(result.bannerUrl);
+      } else {
+        setBannerError("Banner generation failed. Please try again.");
+        setIsGenerating(false);
+      }
+    } catch (err) {
+      setBannerError(err instanceof Error ? err.message : "Banner generation failed");
+      setIsGenerating(false);
+    }
+  }, [bannerPrompt, sessionId, styleReferenceFile, objectReferenceFile, bannerType, setBannerUrl]);
+
+  const handleAnimationComplete = useCallback(() => {
+    setAnimationComplete(true);
+    setShowLabelCursor(true);
+    // Type out "4) Output" character by character
+    const label = "4) Output";
+    let idx = 0;
+    const typeInterval = setInterval(() => {
+      idx++;
+      setOutputLabel(label.slice(0, idx));
+      if (idx >= label.length) {
+        clearInterval(typeInterval);
+        setShowLabelCursor(false);
+      }
+    }, 80);
   }, []);
 
-  // Mock Asset Generation
-  const simulateAssetGeneration = () => {
-    setIsGeneratingAsset(true);
-    setAssetGenerated(false);
-    setTimeout(() => {
-      setIsGeneratingAsset(false);
-      setAssetGenerated(true);
-    }, 4500); // Wait for loading animation to play
+  // Regenerate cooldown timer
+  useEffect(() => {
+    if (animationComplete) {
+      setRegenCooldown(60);
+    }
+  }, [animationComplete]);
+
+  useEffect(() => {
+    if (regenCooldown <= 0) return;
+    const id = setTimeout(() => setRegenCooldown(prev => prev - 1), 1000);
+    return () => clearTimeout(id);
+  }, [regenCooldown]);
+
+  // --- Fallback: initialize from this page if no session ---
+  const handleFallbackSubmit = async () => {
+    const parsed = parseRepoUrl(fallbackUrl);
+    if (!parsed) {
+      setFetchError("Please enter a valid GitHub repository URL");
+      return;
+    }
+    setIsFetchingRepo(true);
+    setFetchError(null);
+    try {
+      const data = await initializeSession(fallbackUrl);
+      setSessionId(data.session_id);
+      setRepoInfo(data.repo_info);
+      analyzeRepo(data.session_id).catch(console.error);
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : "Failed to connect");
+    } finally {
+      setIsFetchingRepo(false);
+    }
+  };
+
+  // --- Generate README Handler (Slide 4) ---
+  const handleGenerateReadme = async () => {
+    if (!sessionId) return;
+    setIsGeneratingReadme(true);
+
+    try {
+      // Upload showcases if any
+      const showcasesWithFiles = screenshots.filter(s => s.file);
+      if (showcasesWithFiles.length > 0) {
+        const showcaseItems = await Promise.all(
+          showcasesWithFiles.map(async (s, i) => ({
+            order: i + 1,
+            type: s.file!.type.includes("gif") ? "gif" : "image",
+            base64: await fileToBase64(s.file!),
+            description: s.name,
+          }))
+        );
+        await uploadShowcase(sessionId, showcaseItems);
+      }
+
+      // Generate README
+      const readme = await generateReadme(sessionId, bannerUrl || undefined);
+      localStorage.setItem("docugithub_readme", readme);
+      router.push("/editor");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to generate README");
+    } finally {
+      setIsGeneratingReadme(false);
+    }
   };
 
   const handleScreenshotNameChange = (id: number, newName: string) => {
@@ -94,11 +306,25 @@ export default function PreferencesPage() {
   };
 
   const addScreenshotSlot = () => {
-    setScreenshots(prev => [...prev, { id: Date.now(), name: `Screenshot ${prev.length + 1}` }]);
+    const uniqueId = Date.now() + Math.random();
+    setScreenshots(prev => [
+      ...prev,
+      {
+        id: uniqueId,
+        name: prev.length === 0 ? "Main Showcase" : `Feature Showcase ${prev.length}`,
+        file: null,
+        preview: null
+      }
+    ]);
   };
 
   const removeScreenshotSlot = (id: number) => {
     setScreenshots(prev => prev.filter(s => s.id !== id));
+  };
+
+  const handleScreenshotUpload = (id: number, file: File) => {
+    const previewUrl = URL.createObjectURL(file);
+    setScreenshots(prev => prev.map(s => s.id === id ? { ...s, file, preview: previewUrl } : s));
   };
 
   // Framer Motion Variants
@@ -125,20 +351,20 @@ export default function PreferencesPage() {
   const slideTitles = [
     "1. Repository Connection",
     "2. Structure & Headings",
-    "3. AI Visual Generator",
-    "4. Extra Media & Submit"
+    "3. Flow Banner Generator",
+    "4. Project Showcase"
   ];
 
   return (
     <div className="min-h-screen w-full bg-[#f2f2f2] text-black font-body flex flex-col pt-24 px-4 overflow-hidden selection:bg-black selection:text-white pb-32">
-      
+
       {/* Background Pattern */}
-      <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" 
+      <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none"
            style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
       </div>
 
       <div className="max-w-5xl mx-auto w-full relative z-10 flex flex-col flex-1 pb-12">
-        
+
         {/* Header / Tracker */}
         <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b-4 border-black pb-6">
           <div>
@@ -149,11 +375,16 @@ export default function PreferencesPage() {
               Build your Readme
             </h1>
           </div>
-          
+
           {/* Step Indicators */}
           <div className="flex gap-2">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className={`h-3 transition-all duration-300 border-2 border-black ${i === step ? 'w-12 bg-black' : i < step ? 'w-8 bg-black opacity-30' : 'w-4 bg-white'}`}></div>
+              <button
+                key={i}
+                onClick={() => goToStep(i)}
+                className={`h-3 transition-all duration-300 border-2 border-black cursor-pointer ${i === step ? 'w-12 bg-black' : i < step ? 'w-8 bg-black opacity-30' : 'w-4 bg-white'}`}
+                title={`Go to Step ${i + 1}`}
+              ></button>
             ))}
           </div>
         </div>
@@ -183,17 +414,41 @@ export default function PreferencesPage() {
               {/* ======================================= */}
               {step === 0 && (
                 <div className="flex flex-col flex-1 max-w-2xl mx-auto w-full justify-center">
-                  <div className="mb-8 text-center">
-                    <p className="font-bold border-2 border-black inline-block px-4 py-2 bg-[#f2f2f2] shadow-[2px_2px_0px_rgba(0,0,0,1)]">
-                      Target repository mapped from Home page.
-                    </p>
-                  </div>
 
                   {/* Loading State or Github Embed */}
                   <div>
                     <AnimatePresence mode="wait">
-                      {isFetchingRepo ? (
-                        <motion.div 
+                      {!repoInfo && !isFetchingRepo ? (
+                        /* No session — show fallback URL input */
+                        <motion.div
+                          key="fallback-input"
+                          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                          className="flex flex-col items-center gap-4 p-8 border-[3px] border-dashed border-black bg-[#f8f8f8]"
+                        >
+                          <span className="font-bold uppercase tracking-widest text-sm">Enter a GitHub Repository URL</span>
+                          <div className="flex w-full max-w-md gap-2">
+                            <input
+                              type="text"
+                              placeholder="https://github.com/owner/repo"
+                              value={fallbackUrl}
+                              onChange={(e) => { setFallbackUrl(e.target.value); setFetchError(null); }}
+                              onKeyDown={(e) => { if (e.key === "Enter") handleFallbackSubmit(); }}
+                              className="flex-1 bg-white border-2 border-black text-black placeholder:text-zinc-400 h-12 px-4 font-mono focus:outline-none focus:ring-2 focus:ring-black"
+                            />
+                            <button
+                              onClick={handleFallbackSubmit}
+                              disabled={isFetchingRepo}
+                              className="px-6 py-2 bg-black text-white border-2 border-black font-bold uppercase text-sm shadow-[2px_2px_0px_rgba(0,0,0,0.5)] hover:-translate-y-0.5 active:translate-y-0 transition-all"
+                            >
+                              Connect
+                            </button>
+                          </div>
+                          {fetchError && (
+                            <p className="text-red-500 text-sm font-bold">{fetchError}</p>
+                          )}
+                        </motion.div>
+                      ) : isFetchingRepo ? (
+                        <motion.div
                           key="loading"
                           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                           className="flex items-center justify-center p-12 border-[3px] border-dashed border-black bg-[#f2f2f2]"
@@ -203,7 +458,7 @@ export default function PreferencesPage() {
                             <span className="font-bold uppercase tracking-widest text-sm">Validating Repository...</span>
                           </div>
                         </motion.div>
-                      ) : repoData ? (
+                      ) : repoInfo ? (
                         <motion.div
                           key="embed"
                           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
@@ -223,18 +478,18 @@ export default function PreferencesPage() {
                               <div className="w-12 h-12 bg-zinc-200 border-2 border-black flex items-center justify-center rounded">
                                 <User className="w-6 h-6 text-zinc-500" />
                               </div>
-                              <h3 className="text-2xl font-bold font-comic tracking-tight text-blue-600 underline underline-offset-4 decoration-2">{repoData.name}</h3>
+                              <h3 className="text-2xl font-bold font-comic tracking-tight text-blue-600 underline underline-offset-4 decoration-2">{repoInfo.owner}/{repoInfo.repo}</h3>
                             </div>
-                            <p className="text-zinc-700 font-body text-lg leading-relaxed">{repoData.desc}</p>
+                            <p className="text-zinc-700 font-body text-lg leading-relaxed">{repoInfo.description}</p>
                             <div className="flex items-center space-x-6 pt-4 text-sm font-bold uppercase tracking-wider text-black">
-                              <span className="flex items-center gap-1"><span className="w-3 h-3 bg-yellow-400 rounded-full border border-black inline-block"></span> {repoData.lang}</span>
-                              <span className="flex items-center gap-1"><Star className="w-4 h-4" /> {repoData.stars}</span>
-                              <span className="flex items-center gap-1"><GitFork className="w-4 h-4" /> {repoData.forks}</span>
+                              <span className="flex items-center gap-1"><span className="w-3 h-3 bg-yellow-400 rounded-full border border-black inline-block"></span> {repoInfo.language}</span>
+                              <span className="flex items-center gap-1"><Star className="w-4 h-4" /> {repoInfo.stars}</span>
+                              <span className="flex items-center gap-1"><GitFork className="w-4 h-4" /> {repoInfo.is_private ? "Private" : "Public"}</span>
                             </div>
                           </div>
                         </motion.div>
                       ) : (
-                        <motion.div 
+                        <motion.div
                           key="empty"
                           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                           className="flex items-center justify-center p-12 border-[3px] border-dashed border-zinc-300 bg-[#f8f8f8] opacity-50 text-center"
@@ -252,7 +507,7 @@ export default function PreferencesPage() {
               {/* ======================================= */}
               {step === 1 && (
                 <div className="flex flex-col md:flex-row gap-8 flex-1">
-                  
+
                   {/* Left Col: Controls */}
                   <div className="flex-1 space-y-8">
                     {/* Format Toggle */}
@@ -266,135 +521,136 @@ export default function PreferencesPage() {
                           className={`flex-1 py-4 px-6 border-[3px] border-black transition-all duration-200 text-left relative group ${format === "simple" ? "bg-black text-white shadow-none translate-y-1 translate-x-1" : "bg-white text-black shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-[#f2f2f2]"}`}
                         >
                           <span className="block text-xl font-header font-bold mb-1 uppercase tracking-wide">Simple</span>
-                          <span className={`text-sm font-medium ${format === "simple" ? "text-zinc-300" : "text-zinc-500"}`}>Essential sections</span>
+                          <span className={`text-sm font-medium ${format === "simple" ? "text-zinc-300" : "text-zinc-500"}`}>Clean & Straightforward</span>
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleFormatChange("complex")}
+                          onClick={() => handleFormatChange("detailed")}
                           data-cursor="pointer"
-                          className={`flex-1 py-4 px-6 border-[3px] border-black transition-all duration-200 text-left relative group ${format === "complex" ? "bg-black text-white shadow-none translate-y-1 translate-x-1" : "bg-white text-black shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-[#f2f2f2]"}`}
+                          className={`flex-1 py-4 px-6 border-[3px] border-black transition-all duration-200 text-left relative group ${format === "detailed" ? "bg-black text-white shadow-none translate-y-1 translate-x-1" : "bg-white text-black shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-[#f2f2f2]"}`}
                         >
-                          <span className="block text-xl font-header font-bold mb-1 uppercase tracking-wide">Complex</span>
-                          <span className={`text-sm font-medium ${format === "complex" ? "text-zinc-300" : "text-zinc-500"}`}>Detailed docs & API</span>
+                          <span className="block text-xl font-header font-bold mb-1 uppercase tracking-wide">Detailed</span>
+                          <span className={`text-sm font-medium ${format === "detailed" ? "text-zinc-300" : "text-zinc-500"}`}>In-depth Docs</span>
                         </button>
                       </div>
                     </div>
 
-                    {/* Headings Checkboxes */}
+                    {/* Select Badges */}
                     <div className="space-y-3">
-                      <label className="block text-sm font-bold uppercase tracking-wider text-black">Required Sections</label>
-                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                        {Object.entries(headings).map(([key, isChecked]) => (
-                          <label key={key} className={`flex items-center space-x-3 p-3 border-[3px] border-black transition-all cursor-pointer shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 ${isChecked ? 'bg-black text-white' : 'bg-white text-zinc-500 hover:bg-[#f2f2f2]'}`} data-cursor="pointer">
-                            <div className={`w-5 h-5 flex-shrink-0 border-2 ${isChecked ? 'border-white bg-black' : 'border-black bg-white'} relative flex items-center justify-center`}>
-                              {isChecked && <div className="w-2 h-2 bg-white"></div>}
-                            </div>
-                            <input type="checkbox" className="sr-only" checked={isChecked} onChange={() => handleHeadingToggle(key)} />
-                            <span className="font-bold uppercase tracking-wide pointer-events-none text-xs sm:text-sm">{key}</span>
-                          </label>
+                      <label className="block text-sm font-bold uppercase tracking-wider text-black">Select Badges</label>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(selectedBadges).map(([key, isChecked]) => (
+                          <button
+                            key={key}
+                            onClick={() => handleBadgeToggle(key)}
+                            className={`px-3 py-1 font-mono text-xs font-bold uppercase border-2 border-black transition-colors ${isChecked ? 'bg-black text-white' : 'bg-white text-black hover:bg-[#e0e0e0]'}`}
+                            data-cursor="pointer"
+                          >
+                            {key}
+                          </button>
                         ))}
                       </div>
-                      
-                      {/* Dynamic Configuration Inputs */}
+
                       <AnimatePresence>
-                        {headings["Badges"] && (
-                          <motion.div 
+                        {selectedBadges["contact"] && (
+                          <motion.div
+                            key="contact-field"
                             initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                            animate={{ opacity: 1, height: 'auto', marginTop: 16 }}
+                            animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
                             exit={{ opacity: 0, height: 0, marginTop: 0 }}
                             className="overflow-hidden"
                           >
                             <div className="p-4 bg-[#f8f8f8] border-[3px] border-dashed border-black shadow-[inset_2px_2px_0px_rgba(0,0,0,0.05)]">
-                              <label className="block text-sm font-bold uppercase tracking-wider text-black mb-3">Select Badges</label>
-                              <div className="flex flex-wrap gap-2">
-                                {Object.entries(selectedBadges).map(([key, isChecked]) => (
-                                  <button
-                                    key={key}
-                                    onClick={() => handleBadgeToggle(key)}
-                                    className={`px-3 py-1 font-mono text-xs font-bold uppercase border-2 border-black transition-colors ${isChecked ? 'bg-black text-white' : 'bg-white text-black hover:bg-[#e0e0e0]'}`}
-                                    data-cursor="pointer"
-                                  >
-                                    {key}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                        
-                        {headings["Contact"] && (
-                          <motion.div 
-                            initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                            animate={{ opacity: 1, height: 'auto', marginTop: 16 }}
-                            exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="p-4 bg-[#f8f8f8] border-[3px] border-dashed border-black shadow-[inset_2px_2px_0px_rgba(0,0,0,0.05)]">
-                              <label className="block text-sm font-bold uppercase tracking-wider text-black mb-2">Contact Link / Email</label>
-                              <input 
-                                type="text" 
-                                placeholder="hello@docugithub.com" 
-                                value={contactInfo}
-                                onChange={(e) => setContactInfo(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black placeholder:text-zinc-400 h-12 px-4 font-mono focus:outline-none focus:ring-2 focus:ring-black"
-                                data-cursor="text"
-                              />
+                              <label className="block text-sm font-bold uppercase tracking-wider text-black mb-2">Contact Link / Email <span className="text-black">*</span></label>
+                              <motion.div
+                                animate={shakeContact ? { x: [0, -8, 8, -6, 6, -4, 4, 0] } : {}}
+                                transition={{ duration: 0.4 }}
+                                onAnimationComplete={() => setShakeContact(false)}
+                              >
+                                <input
+                                  type="text"
+                                  placeholder="hello@docugithub.com"
+                                  value={contactInfo}
+                                  onChange={(e) => { setContactInfo(e.target.value); setShakeContact(false); }}
+                                  className="w-full bg-white border-2 border-black text-black placeholder:text-zinc-400 h-12 px-4 font-mono focus:outline-none focus:ring-2 focus:ring-black"
+                                  data-cursor="text"
+                                />
+                              </motion.div>
                             </div>
                           </motion.div>
                         )}
 
-                        {headings["Support"] && (
-                          <motion.div 
+                        {docMapSections["Support"] && (
+                          <motion.div
+                            key="support-field"
                             initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                            animate={{ opacity: 1, height: 'auto', marginTop: 16 }}
+                            animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
                             exit={{ opacity: 0, height: 0, marginTop: 0 }}
                             className="overflow-hidden"
                           >
                             <div className="p-4 bg-[#f8f8f8] border-[3px] border-dashed border-black shadow-[inset_2px_2px_0px_rgba(0,0,0,0.05)]">
-                              <label className="block text-sm font-bold uppercase tracking-wider text-black mb-2">Support Link</label>
-                              <input 
-                                type="text" 
-                                placeholder="https://ko-fi.com/username" 
-                                value={supportInfo}
-                                onChange={(e) => setSupportInfo(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black placeholder:text-zinc-400 h-12 px-4 font-mono focus:outline-none focus:ring-2 focus:ring-black"
-                                data-cursor="text"
-                              />
+                              <label className="block text-sm font-bold uppercase tracking-wider text-black mb-2">Support Link <span className="text-black">*</span></label>
+                              <motion.div
+                                animate={shakeSupport ? { x: [0, -8, 8, -6, 6, -4, 4, 0] } : {}}
+                                transition={{ duration: 0.4 }}
+                                onAnimationComplete={() => setShakeSupport(false)}
+                              >
+                                <input
+                                  type="text"
+                                  placeholder="https://buymeacoffee.com/d4rkpho3nix"
+                                  value={supportInfo}
+                                  onChange={(e) => { setSupportInfo(e.target.value); setShakeSupport(false); }}
+                                  className="w-full bg-white border-2 border-black text-black placeholder:text-zinc-400 h-12 px-4 font-mono focus:outline-none focus:ring-2 focus:ring-black"
+                                  data-cursor="text"
+                                />
+                              </motion.div>
                             </div>
                           </motion.div>
                         )}
                       </AnimatePresence>
                     </div>
                   </div>
-                  
+
                   {/* Right Col: Structure Preview & Save Lock */}
                   <div className="w-full md:w-[350px] bg-[#f8f8f8] border-[3px] border-black shadow-[6px_6px_0px_rgba(0,0,0,1)] p-6 flex flex-col relative h-[500px]">
                     <div className="flex items-center justify-between border-b-[3px] border-black pb-4 mb-4">
-                      <h3 className="font-header font-bold uppercase tracking-wide text-lg">Document Map</h3>
+                      <h3 className="font-header font-bold uppercase tracking-wide text-lg">Sections</h3>
                       <div className="w-8 h-8 rounded-full border-2 border-black bg-white flex items-center justify-center"><LayoutDashboard className="w-4 h-4" /></div>
                     </div>
-                    
-                    <div className="flex-1 overflow-y-auto font-mono text-sm space-y-3 pr-2 scrollable">
-                      {headings["Project Title"] && <div className="flex items-center gap-2"><span className="w-4 h-4 bg-black flex-shrink-0"></span> <strong className="truncate">Title & Hero</strong></div>}
-                      {headings["Badges"] && <div className="flex items-center gap-2 text-zinc-500 pl-6"><span className="w-3 h-1 border border-zinc-400"></span> Badges Layer</div>}
-                      {headings["Description"] && <div className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-black flex-shrink-0"></span> Description</div>}
-                      {headings["Features"] && <div className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-black border-dashed flex-shrink-0"></span> Features Map</div>}
-                      {headings["Installation"] && <div className="flex items-center gap-2"><span className="w-4 h-4 bg-black flex-shrink-0"></span> <strong>Installation</strong></div>}
-                      {headings["Usage"] && <div className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-black flex-shrink-0"></span> Usage Guide</div>}
-                      {format === "complex" && <div className="flex items-center gap-2 text-zinc-500 pl-6"><span className="w-2 h-2 bg-zinc-400"></span> API Endpoints</div>}
-                      {format === "complex" && <div className="flex items-center gap-2 text-zinc-500 pl-6"><span className="w-2 h-2 bg-zinc-400"></span> Data Models</div>}
-                      {format === "complex" && <div className="flex items-center gap-2 text-zinc-500 pl-6"><span className="w-2 h-2 bg-zinc-400"></span> Contributing</div>}
-                      {headings["Support"] && <div className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-black flex-shrink-0"></span> Support & Links</div>}
-                      {headings["Contact"] && <div className="flex items-center gap-2 mt-4 pt-4 border-t border-dashed border-zinc-300"><span className="w-4 h-4 border-2 border-black rounded-full flex-shrink-0"></span> Contact Info</div>}
+
+                    <div className="flex-1 grid grid-cols-2 gap-x-2 gap-y-0.5 content-start pr-1">
+                      {Object.entries(docMapSections).map(([key, isChecked]) => (
+                        <div
+                          key={key}
+                          onClick={() => handleDocMapToggle(key)}
+                          data-cursor="pointer"
+                          className={`flex items-center gap-2 cursor-pointer select-none px-2 py-1.5 transition-colors ${isChecked ? 'text-black' : 'text-zinc-400'}`}
+                        >
+                          <div className={`w-4 h-4 flex-shrink-0 border-2 ${isChecked ? 'border-black bg-black' : 'border-zinc-400 bg-white'} flex items-center justify-center`}>
+                            {isChecked && <div className="w-1.5 h-1.5 bg-white"></div>}
+                          </div>
+                          <span className="font-mono text-xs leading-tight">{key}</span>
+                        </div>
+                      ))}
                     </div>
 
                     <div className="mt-4 pt-4 border-t-[3px] border-black bg-white -mx-6 -mb-6 p-6 border-transparent bg-transparent">
-                      <button 
-                        onClick={() => setPreferencesSaved(true)}
+                      <button
+                        onClick={handleSavePreferences}
+                        disabled={isSavingPreferences}
                         className={`w-full py-4 border-[3px] border-black font-header font-bold uppercase tracking-widest transition-all ${preferencesSaved ? "bg-black text-white shadow-none translate-y-1 translate-x-1" : "bg-white text-black shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-[#f2f2f2] hover:-translate-y-1 active:translate-y-0 active:shadow-none"}`}
                         data-cursor="pointer"
                       >
-                         {preferencesSaved ? <span className="flex items-center justify-center gap-2"><CheckCircle2 className="w-5 h-5"/> Saved</span> : "Save Preferences"}
+                         {isSavingPreferences ? (
+                           <span className="flex items-center justify-center gap-2">
+                             <span className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
+                             Saving...
+                           </span>
+                         ) : preferencesSaved ? (
+                           <span className="flex items-center justify-center gap-2"><CheckCircle2 className="w-5 h-5"/> Saved</span>
+                         ) : (
+                           "Save Preferences"
+                         )}
                       </button>
                     </div>
                   </div>
@@ -402,167 +658,278 @@ export default function PreferencesPage() {
               )}
 
               {/* ======================================= */}
-              {/* SLIDE 3: AI ASSETS & PREVIEW GENERATOR  */}
+              {/* SLIDE 3: AI VISUAL GENERATOR             */}
               {/* ======================================= */}
               {step === 2 && (
-                <div className="flex flex-col flex-1 gap-8">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    
-                    {/* Left: Input Config */}
-                    <div className="space-y-6">
-                      <div className="space-y-3">
-                        <label className="block text-sm font-bold uppercase tracking-wider text-black">1. Banner Settings</label>
-                        <textarea 
-                          placeholder="Describe the hero banner... (Logo is generated within)" value={bannerPrompt} onChange={(e) => setBannerPrompt(e.target.value)}
-                          className="w-full bg-[#f8f8f8] border-[3px] border-black text-black placeholder:text-zinc-400 min-h-[140px] p-4 font-body focus:outline-none focus:ring-4 focus:ring-black/10 transition-shadow shadow-[4px_4px_0px_rgba(0,0,0,1)] resize-none"
-                          data-cursor="text"
-                        />
-                      </div>
+                <div className="flex flex-col flex-1 gap-6">
 
-                      <div className="space-y-3">
-                        <label className="block text-sm font-bold uppercase tracking-wider text-black">
-                          2. Format & Reference
-                        </label>
-                        <div className="flex gap-4">
-                          <div className="flex bg-[#f2f2f2] border-[3px] border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] p-1 flex-shrink-0 self-start">
-                            <button onClick={() => setBannerType("png")} className={`px-4 py-2 font-bold uppercase tracking-wide border-2 border-transparent transition-all ${bannerType === "png" ? "bg-black border-black text-white shadow-[2px_2px_0px_rgba(0,0,0,0.5)]" : "text-zinc-600 hover:text-black"}`} data-cursor="pointer">PNG</button>
-                            <button onClick={() => setBannerType("gif")} className={`px-4 py-2 font-bold uppercase tracking-wide border-2 border-transparent transition-all ${bannerType === "gif" ? "bg-black border-black text-white shadow-[2px_2px_0px_rgba(0,0,0,0.5)]" : "text-zinc-600 hover:text-black"}`} data-cursor="pointer">GIF</button>
+                  {/* Row 1: Banner Prompt + Format (always visible) */}
+                  <div className="flex gap-6 items-center">
+                    <div className="flex-1 space-y-2">
+                      <label className="block text-sm font-bold uppercase tracking-wider text-black">1. Banner Prompt</label>
+                      <textarea
+                        placeholder="Describe the hero banner..."
+                        value={bannerPrompt}
+                        onChange={(e) => setBannerPrompt(e.target.value)}
+                        disabled={isGenerating}
+                        className="w-full bg-[#f8f8f8] border-[3px] border-black text-black placeholder:text-zinc-400 min-h-[120px] p-4 font-body focus:outline-none focus:ring-4 focus:ring-black/10 transition-shadow shadow-[4px_4px_0px_rgba(0,0,0,1)] resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        data-cursor="text"
+                      />
+                    </div>
+                    <div className="flex-shrink-0 flex flex-col items-center gap-2">
+                      <label className="block text-sm font-bold uppercase tracking-wider text-black text-center">Format</label>
+                      <div className="flex bg-[#f2f2f2] border-[3px] border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] p-1">
+                        <button onClick={() => setBannerType("png")} disabled={isGenerating} className={`px-5 py-3 font-bold uppercase tracking-wide border-2 border-transparent transition-all ${bannerType === "png" ? "bg-black border-black text-white" : "text-zinc-600 hover:text-black"} disabled:opacity-50`} data-cursor="pointer">PNG</button>
+                        <button onClick={() => setBannerType("gif")} disabled={isGenerating} className={`px-5 py-3 font-bold uppercase tracking-wide border-2 border-transparent transition-all ${bannerType === "gif" ? "bg-black border-black text-white" : "text-zinc-600 hover:text-black"} disabled:opacity-50`} data-cursor="pointer">GIF</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Banner error */}
+                  {bannerError && (
+                    <p className="text-red-500 text-sm font-bold">{bannerError}</p>
+                  )}
+
+                  {/* Conditional: Normal upload UI vs Animation vs Result */}
+                  {!isGenerating && !animationComplete && (
+                    <>
+                      {/* Row 2: Style Reference + Object Reference */}
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold uppercase tracking-wider text-black">2. Style Reference</label>
+                          <input
+                            ref={styleRefInput}
+                            type="file"
+                            accept="image/png"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] ?? null;
+                              setStyleReferenceFile(file);
+                              setStyleReferencePreview(file ? URL.createObjectURL(file) : null);
+                            }}
+                          />
+                          <div
+                            onClick={() => styleRefInput.current?.click()}
+                            className="border-[3px] border-black bg-[#f8f8f8] h-36 flex flex-col items-center justify-center text-center hover:bg-[#e0e0e0] transition-colors cursor-pointer group shadow-[4px_4px_0px_rgba(0,0,0,1)] relative overflow-hidden"
+                            data-cursor="pin"
+                          >
+                            {styleReferencePreview ? (
+                              <>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={styleReferencePreview} alt="Style reference preview" className="absolute inset-0 w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                  <UploadCloud className="w-5 h-5 text-white" />
+                                  <span className="text-white font-bold text-xs uppercase tracking-wide">Change</span>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <UploadCloud className="w-8 h-8 mb-2 text-zinc-400 group-hover:text-black transition-colors" />
+                                <span className="font-header font-bold text-sm uppercase tracking-wide">Upload Style Ref</span>
+                              </>
+                            )}
                           </div>
-                          
-                          <div className="border-[3px] border-dashed border-black bg-[#f8f8f8] flex-1 p-3 flex flex-col items-center justify-center text-center hover:bg-[#e0e0e0] transition-colors cursor-pointer group" data-cursor="pin">
-                            <UploadCloud className="w-5 h-5 mb-1 text-zinc-400 group-hover:text-black transition-colors" />
-                            <span className="font-header font-bold text-xs uppercase tracking-wide">Upload Ref</span>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold uppercase tracking-wider text-black">3. Object Reference</label>
+                          <input
+                            ref={objectRefInput}
+                            type="file"
+                            accept="image/png"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] ?? null;
+                              setObjectReferenceFile(file);
+                              setObjectReferencePreview(file ? URL.createObjectURL(file) : null);
+                            }}
+                          />
+                          <div
+                            onClick={() => objectRefInput.current?.click()}
+                            className="border-[3px] border-black bg-[#f8f8f8] h-36 flex flex-col items-center justify-center text-center hover:bg-[#e0e0e0] transition-colors cursor-pointer group shadow-[4px_4px_0px_rgba(0,0,0,1)] relative overflow-hidden"
+                            data-cursor="pin"
+                          >
+                            {objectReferencePreview ? (
+                              <>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={objectReferencePreview} alt="Object reference preview" className="absolute inset-0 w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                  <UploadCloud className="w-5 h-5 text-white" />
+                                  <span className="text-white font-bold text-xs uppercase tracking-wide">Change</span>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <UploadCloud className="w-8 h-8 mb-2 text-zinc-400 group-hover:text-black transition-colors" />
+                                <span className="font-header font-bold text-sm uppercase tracking-wide">Upload Object Ref</span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
 
+                      {/* Row 3: Generate Button */}
                       <div className="pt-2">
-                        <button 
-                          onClick={simulateAssetGeneration}
-                          disabled={isGeneratingAsset}
-                          className="w-full py-4 border-[3px] border-black bg-black text-white font-header font-black text-xl uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-[4px_4px_0px_rgba(0,0,0,0.5)] hover:-translate-y-1 active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:cursor-wait flex items-center justify-center gap-3"
-                          data-cursor="pointer"
+                        <button
+                          onClick={handleGenerate}
+                          disabled={!bannerPrompt.trim() || !styleReferencePreview || !objectReferencePreview}
+                          className={`w-full py-4 border-[3px] border-black font-header font-black text-xl uppercase tracking-widest transition-all flex items-center justify-center ${
+                            !bannerPrompt.trim() || !styleReferencePreview || !objectReferencePreview
+                              ? "bg-zinc-300 text-zinc-500 border-zinc-400 cursor-not-allowed shadow-none"
+                              : "bg-black text-white hover:bg-zinc-800 shadow-[4px_4px_0px_rgba(0,0,0,0.5)] hover:-translate-y-1 active:translate-y-0 active:shadow-none"
+                          }`}
+                          data-cursor={!bannerPrompt.trim() || !styleReferencePreview || !objectReferencePreview ? "not-allowed" : "pointer"}
                         >
-                           {isGeneratingAsset ? (
-                             <>Running Engine...</>
-                           ) : assetGenerated ? (
-                             <><RefreshCw className="w-5 h-5" /> Regenerate Banner</>
-                           ) : (
-                             <><Send className="w-5 h-5" /> Generate Banner</>
-                           )}
+                          Generate Banner
                         </button>
                       </div>
-                    </div>
-                    
-                    {/* Right: Brutalist Loading / Preview Area */}
-                    <div className="w-full border-[3px] border-black bg-white shadow-[6px_6px_0px_rgba(0,0,0,1)] p-4 flex flex-col items-center justify-center relative min-h-[350px] overflow-hidden">
-                       
-                       {/* Idle State */}
-                       {!isGeneratingAsset && !assetGenerated && (
-                         <div className="text-center opacity-40">
-                           <div className="w-16 h-16 border-4 border-dashed border-black mx-auto mb-4 opacity-50"></div>
-                           <p className="font-header uppercase font-bold tracking-widest">Waiting for Generation</p>
-                         </div>
-                       )}
+                    </>
+                  )}
 
-                       {/* Brutalist Loading Sequence */}
-                       {isGeneratingAsset && (
-                         <motion.div 
-                           initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                           className="absolute inset-0 bg-white border-4 border-black flex flex-col items-center justify-center overflow-hidden z-10"
-                         >
-                           <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #000 10px, #000 20px)' }}></div>
-                           <div className="w-24 h-24 border-8 border-black border-t-transparent animate-spin rounded-full mb-8"></div>
-                           <motion.div 
-                             animate={{ opacity: [0, 1, 0] }} transition={{ duration: 0.8, repeat: Infinity }}
-                             className="text-black bg-white border-2 border-black px-4 py-2 font-mono text-xl font-bold uppercase tracking-[0.2em] shadow-[4px_4px_0px_rgba(0,0,0,1)]">
-                             [ Processing Layers ]
-                           </motion.div>
-                         </motion.div>
-                       )}
+                  {/* Animation: Active generation */}
+                  {isGenerating && !animationComplete && styleReferencePreview && objectReferencePreview && (
+                    <BannerGenerationAnimation
+                      styleRefSrc={styleReferencePreview}
+                      objectRefSrc={objectReferencePreview}
+                      outputSrc={generatedImageUrl}
+                      onComplete={handleAnimationComplete}
+                    />
+                  )}
 
-                       {/* Rendered Result Preview (Full Width Banner) */}
-                       {!isGeneratingAsset && assetGenerated && (
-                         <motion.div 
-                           initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                           className="w-full h-full flex flex-col"
-                         >
-                           <div className="w-full flex-1 bg-zinc-800 border-[3px] border-black relative overflow-hidden shadow-[4px_4px_0px_rgba(0,0,0,1)]">
-                             {/* Fake Banner with Logo Inside */}
-                             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 opacity-80 mix-blend-multiply"></div>
-                             <div className="absolute -bottom-8 -right-8 w-64 h-64 bg-white opacity-10 rounded-full blur-2xl"></div>
-                             
-                             <div className="absolute inset-0 flex flex-col relative items-center justify-center">
-                               {/* Embedded Logo in Banner */}
-                               <div className="w-20 h-20 mb-4 bg-white border-[3px] border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] flex items-center justify-center text-black font-black text-3xl italic tracking-tighter rotate-3">
-                                 NX
-                               </div>
-                               <h1 className="text-white font-black text-4xl drop-shadow-[0_2px_0_rgba(0,0,0,1)] tracking-widest uppercase">NEXUS_UI</h1>
-                             </div>
-                             
-                             <div className="absolute top-2 right-2 px-3 py-1 bg-black text-white text-[10px] font-bold uppercase font-mono border-2 border-white/20">
-                               Generated_Banner.{bannerType}
-                             </div>
-                           </div>
-                         </motion.div>
-                       )}
+                  {/* Result: After animation completes */}
+                  {animationComplete && (
+                    <div className="space-y-3">
+                      {outputLabel && (
+                        <label className="block text-sm font-bold uppercase tracking-wider text-black">
+                          {outputLabel}
+                          {showLabelCursor && <span className="inline-block w-0.5 h-4 bg-black ml-0.5 animate-pulse" />}
+                        </label>
+                      )}
+                      {generatedImageUrl && (
+                        <div className="border-[3px] border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] overflow-hidden bg-white">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={generatedImageUrl}
+                            alt="Generated banner"
+                            className="w-full h-auto object-contain max-h-[320px]"
+                          />
+                        </div>
+                      )}
+                      <button
+                        onClick={() => {
+                          setIsGenerating(false);
+                          setAnimationComplete(false);
+                          setGeneratedImageUrl(null);
+                          setOutputLabel("");
+                          setShowLabelCursor(false);
+                        }}
+                        disabled={regenCooldown > 0}
+                        className={`w-full py-4 border-[3px] font-header font-black text-xl uppercase tracking-widest transition-all flex items-center justify-center ${
+                          regenCooldown > 0
+                            ? "border-zinc-400 bg-zinc-800 text-zinc-500 cursor-not-allowed shadow-none"
+                            : "border-black bg-black text-white hover:bg-zinc-800 shadow-[4px_4px_0px_rgba(0,0,0,0.5)] hover:-translate-y-1 active:translate-y-0 active:shadow-none"
+                        }`}
+                        data-cursor={regenCooldown > 0 ? "not-allowed" : "pointer"}
+                      >
+                        {regenCooldown > 0 ? (
+                          <>Regenerate<span className="ml-2 text-sm font-mono font-normal tracking-normal opacity-40">{regenCooldown}s</span></>
+                        ) : (
+                          "Regenerate"
+                        )}
+                      </button>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 
               {/* ======================================= */}
-              {/* SLIDE 4: EXTRA SCREENSHOTS & FINALIZE   */}
+              {/* SLIDE 4: PROJECT SHOWCASE               */}
               {/* ======================================= */}
               {step === 3 && (
                 <div className="flex flex-col flex-1 space-y-8">
                   <div className="space-y-4 flex-1 flex flex-col">
                     <div className="flex justify-between items-center bg-[#f2f2f2] border-b-4 border-black pb-4 -mx-6 -mt-6 p-6 mb-2">
-                      <label className="block text-xl font-header font-black uppercase tracking-wider text-black">Feature Screenshots ({screenshots.length})</label>
-                      <button 
+                      <label className="block text-xl font-header font-black uppercase tracking-wider text-black">Feature Screenshots & GIF ({screenshots.length})</label>
+                      <button
                         onClick={addScreenshotSlot}
                         className="px-4 py-2 bg-black text-white border-[3px] border-black font-bold uppercase text-sm shadow-[2px_2px_0px_rgba(0,0,0,0.5)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2"
                         data-cursor="pointer"
                       >
-                         <UploadCloud className="w-4 h-4"/> Add Image
+                         <UploadCloud className="w-4 h-4"/> Add Img/GIF
                       </button>
                     </div>
 
                     {/* Dynamic Upload Slots */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 overflow-y-auto pr-2 pb-4 scrollable">
-                      <AnimatePresence>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 overflow-y-auto pr-2 pb-4 scrollable relative">
+                      <AnimatePresence mode="popLayout">
                         {screenshots.length === 0 && (
-                          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="col-span-full border-[3px] border-dashed border-zinc-400 p-12 text-center text-zinc-500 font-bold uppercase tracking-widest mt-4">
-                            No screenshots added yet.
+                          <motion.div
+                            key="empty"
+                            layout
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="col-span-full border-[3px] border-dashed border-zinc-400 p-12 text-center text-zinc-500 font-bold uppercase tracking-widest mt-4"
+                          >
+                            No Assets added yet.
                           </motion.div>
                         )}
                         {screenshots.map((shot) => (
-                          <motion.div 
-                            key={shot.id} 
+                          <motion.div
+                            key={shot.id}
+                            layout
                             initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
                             className="border-[3px] border-black bg-white shadow-[4px_4px_0px_rgba(0,0,0,1)] flex flex-col group overflow-hidden relative"
                           >
-                            <button 
-                              onClick={() => removeScreenshotSlot(shot.id)}
-                              className="absolute top-2 right-2 w-6 h-6 bg-white border-2 border-black flex items-center justify-center font-bold text-xs hover:bg-red-500 hover:text-white transition-colors z-10"
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeScreenshotSlot(shot.id);
+                              }}
+                              className="absolute top-2 right-2 w-7 h-7 bg-white border-2 border-black flex items-center justify-center font-bold text-xs hover:bg-red-500 hover:text-white transition-colors z-20 cursor-pointer shadow-[2px_2px_0px_rgba(0,0,0,1)]"
                               data-cursor="pointer"
+                              title="Remove Slot"
                             >
                               ✕
                             </button>
-                            <div 
-                              className="h-32 border-b-[3px] border-black flex items-center justify-center p-4 transition-colors cursor-pointer bg-[#f8f8f8] hover:bg-[#e0e0e0]"
+                            <div
+                              className="h-32 border-b-[3px] border-black flex items-center justify-center p-4 transition-colors cursor-pointer bg-[#f8f8f8] hover:bg-[#e0e0e0] relative group"
+                              onClick={(e) => {
+                                const input = e.currentTarget.querySelector('input');
+                                input?.click();
+                              }}
                               data-cursor="pin"
                             >
-                              <div className="text-center opacity-60 group-hover:opacity-100 transition-opacity">
-                                <UploadCloud className="w-8 h-8 text-black mx-auto mb-2" />
-                                <span className="font-header font-bold text-sm uppercase">Upload Image</span>
-                              </div>
+                              <input
+                                type="file"
+                                accept="image/png, image/gif"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleScreenshotUpload(shot.id, file);
+                                }}
+                              />
+                              {shot.preview ? (
+                                <>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={shot.preview} alt={shot.name} className="absolute inset-0 w-full h-full object-cover" />
+                                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                    <UploadCloud className="w-5 h-5 text-white" />
+                                    <span className="text-white font-bold text-xs uppercase tracking-wide">Change</span>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="text-center opacity-60 group-hover:opacity-100 transition-opacity">
+                                  <UploadCloud className="w-8 h-8 text-black mx-auto mb-2" />
+                                  <span className="font-header font-bold text-sm uppercase">Upload Img/GIF</span>
+                                </div>
+                              )}
                             </div>
-                            
+
                             {/* Editable Name Field attached to the upload slot */}
                             <div className="p-3 bg-white">
-                              <input 
-                                type="text" 
+                              <input
+                                type="text"
                                 value={shot.name}
                                 onChange={(e) => handleScreenshotNameChange(shot.id, e.target.value)}
                                 className="w-full border-2 border-dashed border-zinc-300 focus:border-black text-sm font-body px-2 py-1 text-center font-bold focus:outline-none focus:bg-[#f2f2f2]"
@@ -576,13 +943,21 @@ export default function PreferencesPage() {
                   </div>
 
                   <div className="pt-4 border-t-[3px] border-black">
-                    <button 
-                      className="w-full py-6 bg-white border-[3px] border-black text-black font-header font-black text-3xl uppercase tracking-widest hover:bg-black hover:text-white hover:-translate-y-2 hover:shadow-[12px_12px_0px_rgba(0,0,0,0.5)] transition-all shadow-[6px_6px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-none"
+                    <button
+                      onClick={handleGenerateReadme}
+                      disabled={isGeneratingReadme}
+                      className="w-full py-6 bg-white border-[3px] border-black text-black font-header font-black text-3xl uppercase tracking-widest hover:bg-black hover:text-white hover:-translate-y-2 hover:shadow-[12px_12px_0px_rgba(0,0,0,0.5)] transition-all shadow-[6px_6px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
                       data-cursor="pointer"
                     >
-                      GENERATE README
+                      {isGeneratingReadme ? (
+                        <span className="flex items-center justify-center gap-4">
+                          <span className="w-8 h-8 rounded-full border-4 border-black border-t-transparent animate-spin"></span>
+                          GENERATING...
+                        </span>
+                      ) : (
+                        "GENERATE README"
+                      )}
                     </button>
-                    <p className="text-center font-handwritten text-lg mt-4 text-zinc-600 italic">This will compile all settings and open the Editor.</p>
                   </div>
                 </div>
               )}
@@ -592,7 +967,7 @@ export default function PreferencesPage() {
 
         {/* Global Navigation Controls */}
         <div className="flex justify-between mt-8 relative z-20">
-          <button 
+          <button
             onClick={prevStep}
             disabled={step === 0}
             className="px-6 py-3 border-[3px] border-black bg-white font-bold uppercase text-black disabled:opacity-0 disabled:pointer-events-none shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-[#e0e0e0] transition-colors active:translate-y-1 active:shadow-none"
@@ -600,8 +975,8 @@ export default function PreferencesPage() {
           >
             ← Back
           </button>
-          
-          <button 
+
+          <button
             onClick={nextStep}
             disabled={step === 3 || (step === 1 && !preferencesSaved)}
             className={`px-6 py-3 border-[3px] border-black font-bold uppercase disabled:pointer-events-none transition-colors active:translate-y-1 active:shadow-none shadow-[4px_4px_0px_rgba(0,0,0,1)] ${step === 3 ? 'opacity-0' : step === 1 && !preferencesSaved ? 'bg-[#f2f2f2] text-zinc-400 border-zinc-400 shadow-none' : 'bg-black text-white hover:bg-zinc-800'}`}
