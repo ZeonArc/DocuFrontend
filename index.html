@@ -1,0 +1,2323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocuGitHub - AI-Powered README Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .input-section {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .status.warning {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .repo-info {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .repo-info h2 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .repo-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .repo-detail {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .repo-detail strong {
+            display: block;
+            color: #555;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            margin: 20px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #2c3e50;
+        }
+
+        .close-btn {
+            background: #e74c3c;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .checkbox-group {
+            margin: 15px 0;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 10px;
+            width: auto;
+        }
+
+        .radio-group {
+            margin: 15px 0;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .radio-group input[type="radio"] {
+            margin-right: 10px;
+            width: auto;
+        }
+
+        .editor-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .editor-pane {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-pane h3 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 500px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        .preview {
+            min-height: 500px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background: #fafafa;
+            overflow-y: auto;
+        }
+
+        .preview h1,
+        .preview h2,
+        .preview h3 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .preview code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .preview pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+
+        .preview {
+            user-select: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+        }
+
+        .revision-box {
+            position: absolute;
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 6px;
+            padding: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            min-width: 250px;
+            max-width: 350px;
+        }
+
+        .revision-box-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .revision-box-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .revision-box-close {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .revision-box-textarea {
+            width: 100%;
+            min-height: 60px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .revision-box-textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .revision-marker {
+            background: rgba(52, 152, 219, 0.2);
+            border: 2px dashed #3498db;
+            position: relative;
+            display: inline-block;
+        }
+
+        .revisions-summary {
+            background: #fff3cd;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+            font-size: 12px;
+        }
+
+        .revisions-summary strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #856404;
+        }
+
+        .revision-item {
+            background: white;
+            padding: 5px 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #555;
+        }
+
+        .chat-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            max-height: 500px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            z-index: 999;
+        }
+
+        .chat-header {
+            background: #3498db;
+            color: white;
+            padding: 15px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            margin: 0;
+        }
+
+        .chat-toggle {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            max-height: 350px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .message.user {
+            background: #e3f2fd;
+            text-align: right;
+        }
+
+        .message.assistant {
+            background: #f5f5f5;
+        }
+
+        .chat-input-container {
+            padding: 15px;
+            border-top: 1px solid #ddd;
+        }
+
+        .chat-input-container textarea {
+            width: 100%;
+            min-height: 60px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            resize: none;
+        }
+
+        .chat-input-container button {
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .chat-input-container textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .section-comment-btn {
+            background: #9b59b6;
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .logo-pos-btn {
+            background: #ecf0f1;
+            border: 2px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            transition: all 0.2s;
+        }
+
+        .logo-pos-btn:hover {
+            background: #d5dbdb;
+            border-color: #3498db;
+        }
+
+        .logo-pos-btn.active {
+            background: #3498db;
+            border-color: #2980b9;
+            color: white;
+        }
+
+        .showcase-upload-container {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+
+        .showcase-group {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .showcase-group:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .feature-item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
+
+        .feature-item input[type="text"] {
+            flex: 1;
+            padding: 8px;
+            font-size: 13px;
+        }
+
+        .remove-feature-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .add-feature-btn {
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .add-feature-btn:hover {
+            background: #27ae60;
+        }
+
+        .upload-assets-btn {
+            background: #9b59b6;
+            color: white;
+            border: none;
+            padding: 10px;
+            width: 100%;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .upload-assets-btn:hover {
+            background: #8e44ad;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 DocuGitHub</h1>
+            <p>AI-Powered README Generator - Test Interface</p>
+        </div>
+
+        <!-- URL Input Section -->
+        <div class="input-section" id="inputSection">
+            <div class="input-group">
+                <label for="repoUrl">GitHub Repository URL</label>
+                <input type="text" id="repoUrl"
+                    placeholder="https://github.com/username/repo or docugithub.com/username/repo">
+            </div>
+            <button onclick="handleUrlSubmit()">Start Processing</button>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="statusContainer"></div>
+
+        <!-- Repo Info Section -->
+        <div class="repo-info hidden" id="repoInfo">
+            <h2>Repository Information</h2>
+            <div class="repo-details" id="repoDetails"></div>
+            <button onclick="confirmRepo()">Confirm & Continue</button>
+        </div>
+
+        <!-- Preferences Modal -->
+        <div class="modal" id="preferencesModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Documentation Preferences</h2>
+                    <button class="close-btn" onclick="closePreferencesModal()">Close</button>
+                </div>
+                <div class="input-group">
+                    <label>Documentation Style</label>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="style" value="simple" checked>
+                            Simple - Clean and straightforward documentation
+                        </label>
+                        <label>
+                            <input type="radio" name="style" value="complex">
+                            Complex - Detailed with architecture and advanced features
+                        </label>
+                    </div>
+                </div>
+                <!-- [NEW] Contact Information -->
+                <div class="input-group">
+                    <label for="contactInfo">Contact Information (Optional)</label>
+                    <input type="text" id="contactInfo"
+                        placeholder="e.g., mailto:your@email.com or https://twitter.com/yourhandle">
+                    <span style="font-size: 11px; color: #666;">Will be used in the generated README for
+                        contact/support.</span>
+                </div>
+                <div class="input-group">
+                    <label>Sections to Include</label>
+                    <div class="checkbox-group" id="sectionsCheckbox"></div>
+                </div>
+                <div class="input-group">
+                    <label>Badges & Features</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="badgeLicense" value="license" checked>
+                        License Badge
+                        </label>
+                        <label>
+                            <input type="checkbox" id="badgeVersion" value="version" checked>
+                            Version Badge
+                        </label>
+                        <label>
+                            <input type="checkbox" id="badgeReleaseDate" value="release_date" checked>
+                            Release Date
+                        </label>
+                        <label>
+                            <input type="checkbox" id="badgeLastCommit" value="last_commit" checked>
+                            Last Commit
+                        </label>
+                        <label>
+                            <input type="checkbox" id="badgeFollowers" value="followers" checked>
+                            Followers
+                        </label>
+                        <label>
+                            <input type="checkbox" id="badgeContact" value="contact" checked>
+                            Contact Badge
+                        </label>
+                        <label>
+                            <input type="checkbox" id="badgeStarChart" value="star_chart">
+                            Star History Chart
+                        </label>
+                        <label>
+                            <input type="checkbox" id="badgeBuyMeCoffee" value="buymeacoffee"
+                                onchange="toggleSupportLink()">
+                            Buy Me a Coffee Badge
+                        </label>
+                        <div id="supportLinkContainer" style="display: none; margin-left: 25px; margin-top: 5px;">
+                            <input type="text" id="supportLink" value="https://buymeacoffee.com/hf2p"
+                                placeholder="Your Support URL" style="font-size: 13px; padding: 6px;">
+                        </div>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>
+                        <input type="checkbox" id="enableBanner" onchange="toggleBannerOptions()">
+                        🎨 Generate AI Banner for README
+                    </label>
+                    <div id="bannerOptions"
+                        style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                        <div style="margin-bottom: 10px;">
+                            <label for="bannerPrompt" style="font-size: 14px;">Banner Description</label>
+                            <textarea id="bannerPrompt"
+                                placeholder="e.g., Professional tech banner with gradient blue background and code elements"
+                                style="width: 100%; min-height: 60px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;"></textarea>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label for="styleReference" style="font-size: 14px;">Style Reference (Optional)</label>
+                            <input type="file" id="styleReference" accept="image/*"
+                                style="width: 100%; padding: 5px; font-size: 13px;">
+                            <span style="font-size: 11px; color: #666;">Upload an image to guide the artistic style and
+                                colors</span>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label for="logoImage" style="font-size: 14px;">Logo/Subject Image (Optional)</label>
+                            <input type="file" id="logoImage" accept="image/*"
+                                style="width: 100%; padding: 5px; font-size: 13px;">
+                            <span style="font-size: 11px; color: #666;">Upload a logo to be preserved and placed on the
+                                banner</span>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="font-size: 14px;">Banner Type</label>
+                            <div class="radio-group">
+                                <label style="margin-right: 15px;">
+                                    <input type="radio" name="bannerType" value="img" checked>
+                                    Image (Static)
+                                </label>
+                                <label>
+                                    <input type="radio" name="bannerType" value="gif">
+                                    GIF (Animated)
+                                </label>
+                            </div>
+                        </div>
+
+                        <button onclick="generateBanner()"
+                            style="width: 100%; background: #9b59b6; margin-top: 10px;">Generate Banner</button>
+                        <div id="bannerPreview" style="display: none; margin-top: 10px;">
+                            <label style="font-size: 14px; color: #27ae60;">✓ Banner Generated</label>
+                            <img id="bannerPreviewImage" src="" alt="Generated Banner"
+                                style="width: 100%; border-radius: 4px; margin-top: 5px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Showcase Upload Section -->
+            <div class="input-group">
+                <label>Product Screenshots & GIFs (Optional)</label>
+                <div class="showcase-upload-container">
+                    <div class="showcase-group">
+                        <label style="font-size: 13px; margin-bottom: 5px;">Main Showcase (Hero Image/GIF)</label>
+                        <input type="file" id="mainShowcaseFile" accept="image/*" style="width: 100%; font-size: 13px;">
+                        <span style="font-size: 11px; color: #666;">No caption required. Max 10MB.</span>
+                    </div>
+
+                    <div class="showcase-group">
+                        <label style="font-size: 13px; margin-bottom: 5px;">Feature Screenshots/GIFs</label>
+                        <div id="featureUploads">
+                            <!-- Dynamic inputs will be added here -->
+                        </div>
+                        <button class="add-feature-btn" onclick="addFeatureUploadRow()">+ Add Feature Image</button>
+                    </div>
+
+                    <button class="upload-assets-btn" onclick="uploadShowcase()">Upload Assets to Webhook</button>
+                    <div id="uploadStatus" style="margin-top: 10px; font-size: 13px; display: none;"></div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="savePreferences()">Save Preferences</button>
+                <button onclick="generateReadme()" style="background: #27ae60;">Generate README</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editor Section -->
+    <div class="hidden" id="editorSection">
+        <div class="editor-container">
+            <div class="editor-pane">
+                <h3>Markdown Source</h3>
+                <textarea id="markdownEditor" oninput="updatePreview()"></textarea>
+            </div>
+            <div class="editor-pane">
+                <h3>Preview</h3>
+                <div class="preview" id="markdownPreview"></div>
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="pushToGitHub()">Push to GitHub</button>
+        </div>
+    </div>
+    </div>
+
+    <!-- Chat Interface -->
+    <div class="chat-container hidden" id="chatContainer">
+        <div class="chat-header">
+            <h3>💬 AI Assistant</h3>
+            <button class="chat-toggle" onclick="toggleChat()">−</button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-container">
+            <div id="revisionsSummary" class="revisions-summary" style="display: none;">
+                <strong>📝 Active Revisions (will be included in your message):</strong>
+                <div id="revisionsList"></div>
+            </div>
+            <textarea id="chatInput" placeholder="Ask me to revise the README..."></textarea>
+            <button onclick="sendChatMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const N8N_BASE_URL = 'http://localhost:5678';
+        const GITHUB_CLIENT_ID = 'Ov23liHpvxt8mSVL3qDG';
+        // Match your GitHub OAuth app callback URL
+        const GITHUB_REDIRECT_URI = 'http://localhost:8000/auth/callback';
+
+        // Webhook secret (should be set via localStorage or environment)
+        // To set: localStorage.setItem('webhook_secret', 'your_secret_here');
+
+        // State
+        let sessionId = localStorage.getItem('docugithub_session_id') || null;
+        let repoInfo = null;
+        let currentReadme = '';
+        let chatHistory = [];
+        let generatedReadmeData = null; // Store the full response from generate webhook
+        let revisions = []; // Array of revision objects: {id, selectedText, sectionContext, revisionNote, element}
+        let selectedLogoPosition = 'center'; // Default logo position
+        let generatedBannerUrl = null; // Store generated banner URL
+
+        // Log current session ID on load
+        if (sessionId) {
+            console.log('Restored session ID from localStorage:', sessionId);
+        }
+
+        // Helper function to safely parse JSON response
+        async function parseJSONResponse(response, allowEmpty = false) {
+            const text = await response.text();
+
+            if (!text || text.trim() === '') {
+                if (allowEmpty) {
+                    return {};
+                }
+                throw new Error('Empty response from server');
+            }
+
+            try {
+                return JSON.parse(text);
+            } catch (error) {
+                console.error('Response text:', text);
+                throw new Error(`Invalid JSON response: ${text.substring(0, 200)}`);
+            }
+        }
+
+        // Extract repo info from URL
+        function parseRepoUrl(url) {
+            // Handle docugithub.com format
+            url = url.replace(/^https?:\/\/(www\.)?docugithub\.com\//, 'https://github.com/');
+
+            // Extract owner and repo
+            const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+            if (match) {
+                return {
+                    owner: match[1],
+                    repo: match[2].replace(/\.git$/, ''),
+                    url: `https://github.com/${match[1]}/${match[2].replace(/\.git$/, '')}`
+                };
+            }
+            return null;
+        }
+
+        // Show status message
+        function showStatus(message, type = 'info') {
+            const container = document.getElementById('statusContainer');
+            container.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // Generate session ID
+        function generateSessionId() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                const r = Math.random() * 16 | 0;
+                const v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // Initialize session
+        async function initializeSession(repoUrl) {
+            // Generate a temporary session ID to send (backend may use it or create its own)
+            const tempSessionId = generateSessionId();
+
+            try {
+                const response = await fetch(`${N8N_BASE_URL}/webhook/initialize`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        repo_url: repoUrl,
+                        session_id: tempSessionId,
+                        user_id: null
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    showStatus(`HTTP Error ${response.status}: ${errorText.substring(0, 100)}`, 'error');
+                    return false;
+                }
+
+                const data = await parseJSONResponse(response);
+
+                if (data.error) {
+                    showStatus(`Error: ${data.message || 'Unknown error'}`, 'error');
+                    return false;
+                }
+
+                if (data.success) {
+                    // IMPORTANT: Use the session_id returned from the backend
+                    if (data.session_id) {
+                        sessionId = data.session_id;
+                        // Store in localStorage for persistence
+                        localStorage.setItem('docugithub_session_id', sessionId);
+                        console.log('Session ID from backend:', sessionId);
+                    } else {
+                        // Fallback to the one we sent if backend doesn't return one
+                        sessionId = tempSessionId;
+                        localStorage.setItem('docugithub_session_id', sessionId);
+                    }
+
+                    repoInfo = data.repo_info;
+                    showStatus('Repository initialized successfully!', 'success');
+                    displayRepoInfo(data.repo_info);
+                    return true;
+                }
+
+                showStatus('Unexpected response format', 'error');
+                return false;
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+                console.error('Initialize error:', error);
+                return false;
+            }
+        }
+
+        // Display repo information
+        function displayRepoInfo(info) {
+            const repoInfoDiv = document.getElementById('repoInfo');
+            const repoDetailsDiv = document.getElementById('repoDetails');
+
+            repoDetailsDiv.innerHTML = `
+                <div class="repo-detail">
+                    <strong>Owner</strong>
+                    ${info.owner}
+                </div>
+                <div class="repo-detail">
+                    <strong>Repository</strong>
+                    ${info.repo}
+                </div>
+                <div class="repo-detail">
+                    <strong>Private</strong>
+                    ${info.is_private ? 'Yes' : 'No'}
+                </div>
+                <div class="repo-detail">
+                    <strong>Language</strong>
+                    ${info.language || 'N/A'}
+                </div>
+                <div class="repo-detail">
+                    <strong>Stars</strong>
+                    ${info.stars || 0}
+                </div>
+                <div class="repo-detail">
+                    <strong>Description</strong>
+                    ${info.description || 'No description'}
+                </div>
+            `;
+
+            repoInfoDiv.classList.remove('hidden');
+        }
+
+        // Handle URL submit
+        async function handleUrlSubmit() {
+            const urlInput = document.getElementById('repoUrl');
+            const url = urlInput.value.trim();
+
+            if (!url) {
+                showStatus('Please enter a GitHub repository URL', 'error');
+                return;
+            }
+
+            const parsed = parseRepoUrl(url);
+            if (!parsed) {
+                showStatus('Invalid GitHub URL format', 'error');
+                return;
+            }
+
+            showStatus('Initializing session...', 'info');
+
+            // Check if OAuth is needed
+            const needsAuth = url.includes('private') || confirm('Do you want to authenticate with GitHub? (Required for private repos and pushing)');
+
+            if (needsAuth) {
+                // Redirect to GitHub OAuth (sessionId will be set after initialize)
+                const state = btoa(JSON.stringify({ repoUrl: parsed.url }));
+                const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(GITHUB_REDIRECT_URI)}&scope=public_repo&state=${state}`;
+                window.location.href = authUrl;
+            } else {
+                // Continue without OAuth
+                const success = await initializeSession(parsed.url);
+                if (success) {
+                    document.getElementById('inputSection').classList.add('hidden');
+                }
+            }
+        }
+
+        // Confirm repo and start analysis
+        async function confirmRepo() {
+            if (!sessionId) {
+                showStatus('Error: No session ID. Please initialize session first.', 'error');
+                return;
+            }
+
+            showStatus('Starting repository analysis...', 'info');
+            console.log('Using session ID for analyze:', sessionId);
+
+            try {
+                const response = await fetch(`${N8N_BASE_URL}/webhook/analyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        github_token: ''
+                    })
+                });
+
+                // Handle 202 Accepted (async operation) - empty response is OK
+                if (response.status === 202) {
+                    showStatus('Analysis started. This may take 1-2 minutes...', 'info');
+                    pollAnalysisStatus();
+                    return;
+                }
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    showStatus(`HTTP Error ${response.status}: ${errorText.substring(0, 100)}`, 'error');
+                    return;
+                }
+
+                // Try to parse JSON, but empty response is OK for 200 status
+                const text = await response.text();
+                if (!text || text.trim() === '') {
+                    showStatus('Analysis started. This may take 1-2 minutes...', 'info');
+                    pollAnalysisStatus();
+                    return;
+                }
+
+                const data = JSON.parse(text);
+
+                if (data.error) {
+                    showStatus(`Error: ${data.message || 'Unknown error'}`, 'error');
+                    return;
+                }
+
+                showStatus('Analysis started. This may take 1-2 minutes...', 'info');
+
+                // Poll for analysis completion
+                pollAnalysisStatus();
+            } catch (error) {
+                // If it's just an empty response, that's OK - analysis might have started
+                if (error.message.includes('Empty response')) {
+                    showStatus('Analysis started. This may take 1-2 minutes...', 'info');
+                    pollAnalysisStatus();
+                    return;
+                }
+                showStatus(`Error: ${error.message}`, 'error');
+                console.error('Analyze error:', error);
+            }
+        }
+
+        // Poll analysis status
+        async function pollAnalysisStatus() {
+            const maxAttempts = 60;
+            let attempts = 0;
+
+            const poll = setInterval(async () => {
+                attempts++;
+
+                try {
+                    // In production, you'd check session status from Supabase
+                    // For testing, we'll simulate completion after a few attempts
+                    if (attempts >= 5) {
+                        clearInterval(poll);
+                        showStatus('Analysis completed!', 'success');
+                        openPreferencesModal();
+                        return;
+                    }
+
+                    // Optional: Check actual status from backend
+                    // const response = await fetch(`${N8N_BASE_URL}/webhook/status?session_id=${sessionId}`);
+                    // const data = await response.json();
+                    // if (data.status === 'analysis_complete') {
+                    //     clearInterval(poll);
+                    //     showStatus('Analysis completed!', 'success');
+                    //     openPreferencesModal();
+                    // }
+                } catch (error) {
+                    console.error('Error polling status:', error);
+                }
+            }, 2000);
+        }
+
+        // Open preferences modal
+        function openPreferencesModal() {
+            // Populate sections from templates
+            const sectionsDiv = document.getElementById('sectionsCheckbox');
+            const sections = [
+                { id: 'not_fork', label: '💡 Why this exists' },
+                { id: 'features', label: '✨ Features' },
+                { id: 'architecture', label: '🏗️ Architecture' },
+                { id: 'quick_start', label: '🚀 Quick Start' },
+                { id: 'usage', label: '📖 Usage' },
+                { id: 'contributing', label: '🤝 Contributing' },
+                { id: 'maintainers', label: '👤 Maintainers' },
+                { id: 'contributors', label: '🤝 Contributors' },
+                { id: 'support', label: '💖 Support' },
+                { id: 'license', label: '📄 License' }
+            ];
+
+            sectionsDiv.innerHTML = sections.map(section => `
+                <label>
+                    <input type="checkbox" value="${section.id}" checked>
+                    ${section.label}
+                </label>
+            `).join('');
+
+            document.getElementById('preferencesModal').classList.add('active');
+        }
+
+        // Close preferences modal
+        function closePreferencesModal() {
+            document.getElementById('preferencesModal').classList.remove('active');
+        }
+
+        // [NEW] Toggle Support Link visibility
+        function toggleSupportLink() {
+            const isChecked = document.getElementById('badgeBuyMeCoffee').checked;
+            const container = document.getElementById('supportLinkContainer');
+            container.style.display = isChecked ? 'block' : 'none';
+        }
+
+        // Save preferences only
+        async function savePreferences() {
+            if (!sessionId) {
+                showStatus('Error: No session ID. Please initialize session first.', 'error');
+                return;
+            }
+
+            const style = document.querySelector('input[name="style"]:checked').value;
+            const selectedSections = Array.from(document.querySelectorAll('#sectionsCheckbox input:checked')).map(cb => cb.value);
+            const contactInfo = document.getElementById('contactInfo').value.trim();
+            const supportLink = document.getElementById('supportLink').value.trim();
+            const badges = [];
+
+            if (document.getElementById('badgeLicense').checked) badges.push('license');
+            if (document.getElementById('badgeVersion').checked) badges.push('version');
+            if (document.getElementById('badgeReleaseDate').checked) badges.push('release_date');
+            if (document.getElementById('badgeLastCommit').checked) badges.push('last_commit');
+            if (document.getElementById('badgeFollowers').checked) badges.push('followers');
+            if (document.getElementById('badgeContact').checked) badges.push('contact');
+            // contributors moved to sections
+            if (document.getElementById('badgeStarChart').checked) badges.push('star_chart');
+            if (document.getElementById('badgeBuyMeCoffee').checked) {
+                badges.push('buymeacoffee');
+                if (!supportLink) {
+                    showStatus('Error: Support Link is required when "Buy Me a Coffee" is selected.', 'error');
+                    return;
+                }
+            }
+
+            if (!sessionId) {
+                showStatus('Error: No session ID. Please initialize session first.', 'error');
+                return;
+            }
+
+            showStatus('Saving preferences...', 'info');
+            console.log('Saving preferences with session ID:', sessionId);
+            console.log('Saving preferences with session ID:', sessionId);
+
+            try {
+                // Save preferences
+                const prefsResponse = await fetch(`${N8N_BASE_URL}/webhook/preferences`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        preferences: {
+                            tone: style,
+                            sections: selectedSections,
+                            badges: badges,
+                            include_toc: true,
+                            contact_info: contactInfo,
+                            support_link: document.getElementById('badgeBuyMeCoffee').checked ? supportLink : null
+                        }
+                    })
+                });
+
+                if (!prefsResponse.ok) {
+                    const errorText = await prefsResponse.text();
+                    showStatus(`HTTP Error ${prefsResponse.status}: ${errorText.substring(0, 100)}`, 'error');
+                    return;
+                }
+
+                const prefsData = await parseJSONResponse(prefsResponse);
+
+                if (prefsData.error) {
+                    showStatus(`Error: ${prefsData.message || 'Unknown error'}`, 'error');
+                    if (prefsData.errors) {
+                        console.error('Validation errors:', prefsData.errors);
+                    }
+                    return;
+                }
+
+                showStatus('Preferences saved successfully! You can now generate the README.', 'success');
+                // Don't close modal - let user click Generate button when ready
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+                console.error('Save preferences error:', error);
+            }
+        }
+
+        // Generate README separately
+        async function generateReadme() {
+            if (!sessionId) {
+                showStatus('Error: No session ID. Please initialize session first.', 'error');
+                return;
+            }
+
+            showStatus('Generating README...', 'info');
+            console.log('Generating README with session ID:', sessionId);
+
+            try {
+                // Generate README (include banner if generated)
+                const requestBody = {
+                    session_id: sessionId
+                };
+
+                // Add banner URL if user enabled it and generated one
+                if (document.getElementById('enableBanner').checked && generatedBannerUrl) {
+                    requestBody.banner_url = generatedBannerUrl;
+                }
+
+                const genResponse = await fetch(`${N8N_BASE_URL}/webhook/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!genResponse.ok) {
+                    const errorText = await genResponse.text();
+                    showStatus(`HTTP Error ${genResponse.status}: ${errorText.substring(0, 100)}`, 'error');
+                    return;
+                }
+
+                const genData = await parseJSONResponse(genResponse);
+
+                if (genData.error) {
+                    showStatus(`Error: ${genData.message || 'Unknown error'}`, 'error');
+                    return;
+                }
+
+                // Store the generated README data
+                // Handle both array response and object response
+                if (Array.isArray(genData) && genData.length > 0) {
+                    generatedReadmeData = genData[0];
+                } else {
+                    generatedReadmeData = genData;
+                }
+
+                console.log('Generated README data:', generatedReadmeData);
+
+                // If output/raw_readme is available, load it immediately
+                // Handle various response formats (n8n might return different keys)
+                const readmeContent = generatedReadmeData.raw_readme ||
+                    generatedReadmeData.output ||
+                    generatedReadmeData.readme ||
+                    generatedReadmeData.content;
+
+                if (readmeContent) {
+                    // Normalize data structure
+                    if (!generatedReadmeData.raw_readme) {
+                        generatedReadmeData.raw_readme = typeof readmeContent === 'string' ?
+                            readmeContent : JSON.stringify(readmeContent);
+                    }
+
+                    showStatus('README generated successfully!', 'success');
+                    closePreferencesModal();
+                    loadReadme();
+                } else if (generatedReadmeData.project || (Array.isArray(generatedReadmeData) && generatedReadmeData[0]?.project)) {
+                    // Fallback regarding: Backend returned data but not the markdown string.
+                    // We will generate it locally using the template.
+                    console.log('Backend returned structured data. Generating README locally...');
+                    showStatus('Generating README from template...', 'info');
+
+                    try {
+                        const templateResponse = await fetch('README-TEMPLATE.md');
+                        if (!templateResponse.ok) throw new Error('Could not load README-TEMPLATE.md');
+                        const templateText = await templateResponse.text();
+
+                        const data = Array.isArray(generatedReadmeData) ? generatedReadmeData[0] : generatedReadmeData;
+                        const generatedMarkdown = generateReadmeLocally(templateText, data);
+
+                        generatedReadmeData.raw_readme = generatedMarkdown;
+                        showStatus('README generated successfully!', 'success');
+                        closePreferencesModal();
+                        loadReadme();
+                    } catch (err) {
+                        console.error('Local generation failed:', err);
+                        showStatus('Local generation failed. Polling backend...', 'warning');
+                        // Fallback to polling
+                        closePreferencesModal();
+                        pollReadmeGeneration();
+                    }
+                } else {
+                    showStatus('README generation started. This may take 30-60 seconds...', 'info');
+                    // Close preferences modal
+                    closePreferencesModal();
+                    // Poll for README generation completion
+                    pollReadmeGeneration();
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+                console.error('Generate README error:', error);
+            }
+        }
+
+        function generateReadmeLocally(template, data) {
+            let content = template;
+            const p = data.project || {};
+            const r = data.repository || {};
+            const m = data.metadata || {};
+
+            // 1. Handle Conditionals <#IF_...>
+            // Helper to remove block if condition is false, or keep inner content if true
+            const handleCondition = (tag, condition) => {
+                const startTag = `<#IF_${tag}>`;
+                const endTag = `</IF_${tag}>`;
+                const regex = new RegExp(`${startTag}([\\s\\S]*?)${endTag}`, 'g');
+
+                content = content.replace(regex, (match, inner) => {
+                    return condition ? inner : '';
+                });
+            };
+
+            handleCondition('FORK', m.is_fork);
+            handleCondition('NOT_FORK', !m.is_fork);
+
+            // Check UI state for badges
+            const isChecked = (id) => document.getElementById(id) && document.getElementById(id).checked;
+
+            handleCondition('VERSION', isChecked('badgeVersion'));
+            handleCondition('RELEASE_DATE', isChecked('badgeReleaseDate'));
+            handleCondition('LAST_COMMIT', isChecked('badgeLastCommit'));
+            handleCondition('FOLLOWERS', isChecked('badgeFollowers'));
+            handleCondition('LICENSE', isChecked('badgeLicense') && !!p.license);
+            handleCondition('CONTACT', isChecked('badgeContact') && !!data.maintainer);
+
+            handleCondition('FEATURES', data.features && data.features.length > 0);
+            handleCondition('SHOWCASE', data.media && data.media.length > 0);
+            handleCondition('ARCHITECTURE', !!data.architecture);
+            handleCondition('QUICK_START', !!data.installation);
+            handleCondition('USAGE', !!data.usage);
+            handleCondition('CONTRIBUTING', true); // layout usually assumes this
+            handleCondition('MAINTAINERS', true);
+            handleCondition('CONTRIBUTORS', true);
+            handleCondition('SUPPORT', !!data.support);
+            handleCondition('PUBLIC_WITH_STARCHART', isChecked('badgeStarChart') && !p.is_private);
+            handleCondition('BACKGROUND', !!p.background);
+            handleCondition('UNINSTALL', false);
+
+            // 2. Replace Variables <VAR>
+            const replaceVar = (name, value) => {
+                const regex = new RegExp(`<${name}>`, 'g');
+                content = content.replace(regex, value || '');
+            };
+
+            replaceVar('PROJECT_NAME', p.name);
+            replaceVar('PROJECT_EMOJI', p.emoji);
+            replaceVar('REPO_NAME', p.repo);
+            replaceVar('PROJECT_PURPOSE', p.purpose);
+            replaceVar('PROJECT_BACKGROUND', p.background);
+            replaceVar('LICENSE_TYPE', p.license);
+
+            // Fork specific
+            if (m.is_fork) {
+                replaceVar('FORK_REASON', "Forked for customization");
+                replaceVar('ORIGINAL_REPO_NAME', "Upstream/Repo");
+                replaceVar('ORIGINAL_REPO_URL', "#");
+            }
+
+            // Features List
+            if (data.features) {
+                const featuresList = data.features.map(f => `- **${f.name}**: ${f.description}`).join('\n');
+                replaceVar('FEATURES_LIST', featuresList);
+            }
+
+            // Folder Tree
+            if (data.architecture && data.architecture.folder_tree) {
+                replaceVar('FOLDER_TREE', data.architecture.folder_tree);
+            }
+
+            // Install/Build/Run
+            if (data.installation && data.installation.steps) {
+                const installCmds = data.installation.steps.map(s => s.command).join('\n');
+                replaceVar('INSTALL_COMMANDS', installCmds);
+            }
+            // Use defaults if missing in JSON
+            replaceVar('BUILD_COMMANDS', "npm run build");
+            replaceVar('RUN_COMMANDS', "npm start");
+
+            // Usage
+            if (data.usage) {
+                let usageStr = data.usage.description + '\n\n';
+                if (data.usage.examples) {
+                    usageStr += data.usage.examples.map(e => `### ${e.description}\n\`\`\`bash\n${e.code}\n\`\`\``).join('\n\n');
+                }
+                replaceVar('USAGE_CONTENT', usageStr);
+            }
+
+            // Contact
+            if (data.maintainer && data.maintainer.contact) {
+                let contactLink = data.maintainer.contact;
+                replaceVar('CONTACT_INFO', contactLink);
+            }
+
+            // Showcase Media Replacement
+            if (data.media && data.media.length > 0) {
+                // simple sequential replacement of placeholders
+                // Look for src="...placeholder..."
+                // We'll replace the main one first, then others
+                const placeholders = content.match(/src="[^"]*placeholder[^"]*"/g) || [];
+
+                // Replace up to matched count
+                data.media.forEach((m, i) => {
+                    // Find the next placeholder
+                    const placeholderRegex = /src="[^"]*placeholder[^"]*"/;
+                    if (m.url) {
+                        content = content.replace(placeholderRegex, `src="${m.url}"`);
+                    }
+                });
+            }
+
+            // Clean up any remaining tags or alerts placeholders
+            replaceVar('IMPORTANT_ALERT_PLACEHOLDER', "Check requirements before installing.");
+            replaceVar('WARNING_ALERT_PLACEHOLDER', "Do not run as root.");
+            replaceVar('NOTE_ALERT_PLACEHOLDER', "Happy coding!");
+            replaceVar('TIP_ALERT_PLACEHOLDER', "Star the repo if you like it!");
+
+            // Contributors placeholders
+            replaceVar('CONTRIBUTORS_TABLE', '<!-- Contributors will be auto-populated here -->');
+
+            return content;
+        }
+
+        // Poll for README generation completion
+        async function pollReadmeGeneration() {
+            const maxAttempts = 60; // 2 minutes max
+            let attempts = 0;
+
+            const poll = setInterval(async () => {
+                attempts++;
+
+                // Try to fetch the generated README from backend
+                try {
+                    // In production, you'd query Supabase for the latest readme version
+                    // For now, we'll check if we already have the data from the generate response
+                    if (generatedReadmeData && generatedReadmeData.raw_readme) {
+                        clearInterval(poll);
+                        showStatus('README generated successfully!', 'success');
+                        loadReadme();
+                        return;
+                    }
+
+                    // Optional: Check actual status from backend
+                    // const response = await fetch(`${N8N_BASE_URL}/webhook/status?session_id=${sessionId}`);
+                    // const data = await response.json();
+                    // if (data.status === 'readme_generated' && data.raw_readme) {
+                    //     generatedReadmeData = data;
+                    //     clearInterval(poll);
+                    //     loadReadme();
+                    //     return;
+                    // }
+                } catch (error) {
+                    console.error('Error polling for README:', error);
+                }
+
+                // Fallback: Simulate completion after max attempts
+                if (attempts >= maxAttempts) {
+                    clearInterval(poll);
+                    if (generatedReadmeData && generatedReadmeData.raw_readme) {
+                        showStatus('README generated successfully!', 'success');
+                        loadReadme();
+                    } else {
+                        showStatus('README generation timeout. Please try again.', 'warning');
+                    }
+                    return;
+                }
+            }, 3000); // Poll every 3 seconds
+        }
+
+        // Load README from generated data or fetch from backend
+        async function loadReadme() {
+            try {
+                let readmeContent = '';
+
+                // First, try to use the generated README data from webhook response
+                if (generatedReadmeData && generatedReadmeData.raw_readme) {
+                    readmeContent = generatedReadmeData.raw_readme;
+                    console.log('Using README from generate webhook response');
+                } else {
+                    // Fallback: Try to fetch from backend/Supabase
+                    // In production, you'd query Supabase for the latest readme version
+                    // For now, use a sample if no generated data is available
+                    if (repoInfo) {
+                        readmeContent = `# ${repoInfo.repo}
+
+${repoInfo.description ? `> ${repoInfo.description}` : ''}
+
+${repoInfo.language ? `![Language](https://img.shields.io/badge/language-${repoInfo.language}-blue)` : ''}
+${repoInfo.stars ? `![Stars](https://img.shields.io/github/stars/${repoInfo.owner}/${repoInfo.repo}?style=flat-square)` : ''}
+
+## Features
+
+- Feature 1
+- Feature 2
+- Feature 3
+
+## Installation
+
+\`\`\`bash
+git clone https://github.com/${repoInfo.owner}/${repoInfo.repo}.git
+cd ${repoInfo.repo}
+npm install
+\`\`\`
+
+## Usage
+
+\`\`\`bash
+npm start
+\`\`\`
+
+## Contributing
+
+Contributions are welcome! Please see CONTRIBUTING.md for guidelines.
+
+## License
+
+MIT
+`;
+                        console.log('Using fallback sample README');
+                    } else {
+                        showStatus('Error: No README data available', 'error');
+                        return;
+                    }
+                }
+
+                currentReadme = readmeContent;
+                document.getElementById('markdownEditor').value = currentReadme;
+                updatePreview();
+                document.getElementById('editorSection').classList.remove('hidden');
+                document.getElementById('chatContainer').classList.remove('hidden');
+                showStatus('README loaded successfully!', 'success');
+            } catch (error) {
+                showStatus(`Error loading README: ${error.message}`, 'error');
+                console.error('Load README error:', error);
+            }
+        }
+
+        // Update preview with better markdown rendering
+        function updatePreview() {
+            const markdown = document.getElementById('markdownEditor').value;
+            const preview = document.getElementById('markdownPreview');
+
+            // Enhanced markdown to HTML converter
+            let html = markdown
+                // Code blocks (must be first to avoid conflicts)
+                .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')
+                // Headers
+                .replace(/^###### (.*$)/gim, '<h6>$1</h6>')
+                .replace(/^##### (.*$)/gim, '<h5>$1</h5>')
+                .replace(/^#### (.*$)/gim, '<h4>$1</h4>')
+                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+                // Bold and italic
+                .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                // Inline code
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                // Links
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+                // Images
+                .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
+                // Horizontal rule
+                .replace(/^---$/gim, '<hr>')
+                // Unordered lists
+                .replace(/^\* (.*$)/gim, '<li>$1</li>')
+                .replace(/^- (.*$)/gim, '<li>$1</li>')
+                // Ordered lists
+                .replace(/^\d+\. (.*$)/gim, '<li>$1</li>')
+                // Blockquotes
+                .replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>')
+                // Line breaks
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+
+            // Wrap list items in ul/ol tags
+            html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+            // Wrap paragraphs
+            if (!html.startsWith('<h') && !html.startsWith('<pre') && !html.startsWith('<ul') && !html.startsWith('<blockquote')) {
+                html = '<p>' + html + '</p>';
+            }
+
+            preview.innerHTML = html;
+            currentReadme = markdown;
+
+            // Add text selection handler for section-wise revisions
+            setupTextSelection();
+        }
+
+        // Setup text selection in preview for section-wise revisions
+        function setupTextSelection() {
+            const preview = document.getElementById('markdownPreview');
+
+            // Remove existing listeners
+            preview.removeEventListener('mouseup', handleTextSelection);
+
+            // Add new listener
+            preview.addEventListener('mouseup', handleTextSelection);
+        }
+
+        // Handle text selection in preview
+        function handleTextSelection() {
+            const selection = window.getSelection();
+            const selectedText = selection.toString().trim();
+
+            if (selectedText.length < 10) {
+                // Ignore very short selections
+                return;
+            }
+
+            if (selectedText.length > 0) {
+                const range = selection.getRangeAt(0);
+                let sectionContext = null;
+
+                // Find the nearest heading to identify section
+                let element = range.commonAncestorContainer;
+                if (element.nodeType !== Node.ELEMENT_NODE) {
+                    element = element.parentElement;
+                }
+
+                // Walk up the DOM to find the section heading
+                while (element && element !== document.body) {
+                    if (element.tagName && ['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(element.tagName)) {
+                        sectionContext = element.textContent.trim().toLowerCase()
+                            .replace(/[^a-z0-9]+/g, '-')
+                            .replace(/^-|-$/g, '');
+                        break;
+                    }
+                    element = element.parentElement;
+                }
+
+                // If no heading found, try to find section from nearby headings
+                if (!sectionContext) {
+                    const allHeadings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                    for (let heading of allHeadings) {
+                        if (heading.compareDocumentPosition(range.commonAncestorContainer) & Node.DOCUMENT_POSITION_FOLLOWING) {
+                            sectionContext = heading.textContent.trim().toLowerCase()
+                                .replace(/[^a-z0-9]+/g, '-')
+                                .replace(/^-|-$/g, '');
+                            break;
+                        }
+                    }
+                }
+
+                // Create revision box next to selection
+                createRevisionBox(selectedText, sectionContext, range);
+            }
+        }
+
+        // Create a revision box next to selected text
+        function createRevisionBox(selectedText, sectionContext, range) {
+            // Generate unique ID for this revision
+            const revisionId = 'rev-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+
+            // Get position for the revision box
+            const rect = range.getBoundingClientRect();
+            const preview = document.getElementById('markdownPreview');
+            const previewRect = preview.getBoundingClientRect();
+
+            // Create revision object
+            const revision = {
+                id: revisionId,
+                selectedText: selectedText,
+                sectionContext: sectionContext || 'general',
+                revisionNote: '',
+                range: range,
+                element: null
+            };
+
+            // Create revision box element
+            const revisionBox = document.createElement('div');
+            revisionBox.className = 'revision-box';
+            revisionBox.id = revisionId;
+            revisionBox.style.position = 'absolute';
+            revisionBox.style.left = (rect.right - previewRect.left + 20) + 'px';
+            revisionBox.style.top = (rect.top - previewRect.top) + 'px';
+
+            revisionBox.innerHTML = `
+                <div class="revision-box-header">
+                    <span class="revision-box-title">📝 Revision Note</span>
+                    <button class="revision-box-close" onclick="removeRevision('${revisionId}')">×</button>
+                </div>
+                <textarea class="revision-box-textarea" 
+                    placeholder="Enter your revision request for this section..." 
+                    oninput="updateRevisionNote('${revisionId}', this.value)"></textarea>
+            `;
+
+            // Append to preview container (which should be relatively positioned)
+            preview.style.position = 'relative';
+            preview.appendChild(revisionBox);
+
+            // Highlight selected text
+            highlightSelectedText(range, revisionId);
+
+            // Store revision
+            revision.element = revisionBox;
+            revisions.push(revision);
+
+            // Update revisions summary
+            updateRevisionsSummary();
+
+            // Clear selection
+            window.getSelection().removeAllRanges();
+        }
+
+        // Highlight selected text with a marker
+        function highlightSelectedText(range, revisionId) {
+            try {
+                const span = document.createElement('span');
+                span.className = 'revision-marker';
+                span.setAttribute('data-revision-id', revisionId);
+
+                range.surroundContents(span);
+            } catch (e) {
+                // If surroundContents fails, try a different approach
+                console.warn('Could not highlight text:', e);
+            }
+        }
+
+        // Update revision note
+        function updateRevisionNote(revisionId, note) {
+            const revision = revisions.find(r => r.id === revisionId);
+            if (revision) {
+                revision.revisionNote = note;
+                updateRevisionsSummary();
+            }
+        }
+
+        // Remove revision
+        function removeRevision(revisionId) {
+            const revision = revisions.find(r => r.id === revisionId);
+            if (revision) {
+                // Remove highlight
+                const markers = document.querySelectorAll(`[data-revision-id="${revisionId}"]`);
+                markers.forEach(marker => {
+                    const parent = marker.parentNode;
+                    parent.replaceChild(document.createTextNode(marker.textContent), marker);
+                    parent.normalize();
+                });
+
+                // Remove revision box
+                if (revision.element) {
+                    revision.element.remove();
+                }
+
+                // Remove from array
+                revisions = revisions.filter(r => r.id !== revisionId);
+                updateRevisionsSummary();
+            }
+        }
+
+        // Update revisions summary in chat
+        function updateRevisionsSummary() {
+            const summaryDiv = document.getElementById('revisionsSummary');
+            const listDiv = document.getElementById('revisionsList');
+
+            if (revisions.length === 0) {
+                summaryDiv.style.display = 'none';
+                return;
+            }
+
+            summaryDiv.style.display = 'block';
+            listDiv.innerHTML = revisions.map((rev, index) => {
+                const preview = rev.selectedText.length > 50
+                    ? rev.selectedText.substring(0, 50) + '...'
+                    : rev.selectedText;
+                return `<div class="revision-item">${index + 1}. Section: ${rev.sectionContext} - "${preview}" ${rev.revisionNote ? `(${rev.revisionNote})` : ''}</div>`;
+            }).join('');
+        }
+
+        // Toggle chat
+        function toggleChat() {
+            const chat = document.getElementById('chatContainer');
+            const messages = document.getElementById('chatMessages').parentElement;
+            if (messages.style.display === 'none') {
+                messages.style.display = 'flex';
+                document.querySelector('.chat-toggle').textContent = '−';
+            } else {
+                messages.style.display = 'none';
+                document.querySelector('.chat-toggle').textContent = '+';
+            }
+        }
+
+        // Calculate HMAC SHA256 signature
+        async function calculateHMAC(body, secret) {
+            // For browser, we'll use Web Crypto API
+            const encoder = new TextEncoder();
+            const keyData = encoder.encode(secret);
+            const messageData = encoder.encode(body);
+
+            const key = await crypto.subtle.importKey(
+                'raw',
+                keyData,
+                { name: 'HMAC', hash: 'SHA-256' },
+                false,
+                ['sign']
+            );
+
+            const signature = await crypto.subtle.sign('HMAC', key, messageData);
+            const hashArray = Array.from(new Uint8Array(signature));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+            return 'sha256=' + hashHex;
+        }
+
+        // Send chat message
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            let message = input.value.trim();
+
+            if (!message && revisions.length === 0) {
+                showStatus('Please enter a message or add revision notes', 'warning');
+                return;
+            }
+
+            // Build the prompt with all revisions appended
+            let fullMessage = message;
+            let sectionContext = null;
+
+            // Append all revision notes to the message
+            if (revisions.length > 0) {
+                const revisionPrompts = revisions.map((rev, index) => {
+                    const revNote = rev.revisionNote || 'Please improve this section';
+                    return `\n\n--- Revision ${index + 1} (Section: ${rev.sectionContext}) ---\nSelected text: "${rev.selectedText}"\nRevision request: ${revNote}`;
+                }).join('\n');
+
+                fullMessage = message
+                    ? `${message}${revisionPrompts}`
+                    : `Please revise the following sections:${revisionPrompts}`;
+
+                // Use first revision's section context, or combine them
+                sectionContext = revisions.length === 1
+                    ? revisions[0].sectionContext
+                    : revisions.map(r => r.sectionContext).join(',');
+            }
+
+            // Add user message to chat (show original message + revision count)
+            const displayMessage = revisions.length > 0
+                ? `${message || 'General revision'} (+ ${revisions.length} section revision${revisions.length > 1 ? 's' : ''})`
+                : message;
+            addChatMessage('user', displayMessage);
+            input.value = '';
+
+            showStatus('Processing your request...', 'info');
+
+            try {
+                const body = JSON.stringify({
+                    session_id: sessionId,
+                    message: fullMessage,
+                    current_readme: currentReadme,
+                    section_context: sectionContext
+                });
+
+                // Calculate HMAC signature (use your webhook secret)
+                // For testing, you can set this in localStorage or prompt
+                const webhookSecret = localStorage.getItem('webhook_secret') || 'your_webhook_secret_here';
+                const signature = await calculateHMAC(body, webhookSecret);
+
+                const response = await fetch(`${N8N_BASE_URL}/webhook/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-webhook-signature': signature
+                    },
+                    body: body
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    addChatMessage('assistant', `HTTP Error ${response.status}: ${errorText.substring(0, 100)}`);
+                    showStatus(`Error: HTTP ${response.status}`, 'error');
+                    return;
+                }
+
+                const data = await parseJSONResponse(response);
+
+                if (data.error) {
+                    addChatMessage('assistant', `Error: ${data.message || 'Unknown error'}`);
+                    showStatus(`Error: ${data.message}`, 'error');
+                    return;
+                }
+
+                // Update README with revised version
+                if (data.revised_readme) {
+                    currentReadme = data.revised_readme;
+                    document.getElementById('markdownEditor').value = data.revised_readme;
+                    updatePreview();
+                    addChatMessage('assistant', `✅ README updated successfully! (Version ${data.version || 'new'})`);
+                    showStatus('README updated successfully!', 'success');
+
+                    // Update generatedReadmeData if available
+                    if (generatedReadmeData) {
+                        generatedReadmeData.raw_readme = data.revised_readme;
+                    }
+
+                    // Clear all revisions after successful update
+                    clearAllRevisions();
+                } else if (data.message) {
+                    addChatMessage('assistant', data.message);
+                } else {
+                    addChatMessage('assistant', 'Request processed, but no README update received.');
+                }
+            } catch (error) {
+                addChatMessage('assistant', `Error: ${error.message}`);
+                showStatus(`Error: ${error.message}`, 'error');
+                console.error('Chat error:', error);
+            }
+        }
+
+        // Add message to chat
+        function addChatMessage(role, message) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Clear all revisions
+        function clearAllRevisions() {
+            revisions.forEach(rev => {
+                // Remove highlight
+                const markers = document.querySelectorAll(`[data-revision-id="${rev.id}"]`);
+                markers.forEach(marker => {
+                    const parent = marker.parentNode;
+                    parent.replaceChild(document.createTextNode(marker.textContent), marker);
+                    parent.normalize();
+                });
+
+                // Remove revision box
+                if (rev.element) {
+                    rev.element.remove();
+                }
+            });
+
+            revisions = [];
+            updateRevisionsSummary();
+        }
+
+        // Push to GitHub
+        async function pushToGitHub() {
+            if (!confirm('This will overwrite the existing README.md in your repository. Continue?')) {
+                return;
+            }
+
+            showStatus('Pushing to GitHub...', 'info');
+
+            try {
+                const response = await fetch(`${N8N_BASE_URL}/webhook/push`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        readme_content: currentReadme,
+                        commit_message: 'docs: Update README via DocuGitHub'
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    showStatus(`HTTP Error ${response.status}: ${errorText.substring(0, 100)}`, 'error');
+                    return;
+                }
+
+                const data = await parseJSONResponse(response);
+
+                if (data.error) {
+                    showStatus(`Error: ${data.message || 'Unknown error'}`, 'error');
+                    return;
+                }
+
+                showStatus('README pushed to GitHub successfully!', 'success');
+
+                if (data.commit_url) {
+                    alert(`Success! View commit: ${data.commit_url}`);
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+                console.error('Push error:', error);
+            }
+        }
+
+
+
+        // --- Showcase Upload Functions ---
+
+        // Add a new feature upload row
+        function addFeatureUploadRow() {
+            const container = document.getElementById('featureUploads');
+            const rowId = 'feature-row-' + Date.now();
+
+            const div = document.createElement('div');
+            div.className = 'feature-item';
+            div.id = rowId;
+            div.innerHTML = `
+                <div style="flex: 1;">
+                    <input type="file" class="feature-file" accept="image/*" style="width: 100%; font-size: 12px; margin-bottom: 5px;">
+                    <input type="text" class="feature-caption" placeholder="Caption/Description (e.g., Settings Page)" style="width: 100%;">
+                </div>
+                <button class="remove-feature-btn" onclick="removeFeatureRow('${rowId}')" title="Remove">×</button>
+            `;
+            container.appendChild(div);
+        }
+
+        // Remove a feature upload row
+        function removeFeatureRow(rowId) {
+            const row = document.getElementById(rowId);
+            if (row) row.remove();
+        }
+
+        // Construct payload and upload showcase
+        async function uploadShowcase() {
+            if (!sessionId) {
+                showStatus('Error: No session ID. Please initialize session first.', 'error');
+                return;
+            }
+
+            const statusDiv = document.getElementById('uploadStatus');
+            statusDiv.style.display = 'block';
+            statusDiv.style.color = '#3498db';
+            statusDiv.textContent = 'Preparing upload...';
+
+            const showcases = [];
+            const MAX_SIZE_MB = 10;
+            const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+            try {
+                // 1. Process Main Showcase
+                const mainFile = document.getElementById('mainShowcaseFile').files[0];
+                let nextOrder = 1;
+
+                if (mainFile) {
+                    if (mainFile.size > MAX_SIZE_BYTES) {
+                        throw new Error(`Main file exceeds ${MAX_SIZE_MB}MB limit.`);
+                    }
+                    const base64 = await fileToBase64(mainFile);
+                    showcases.push({
+                        order: nextOrder++,
+                        type: mainFile.type.startsWith('image/gif') ? 'gif' : 'img',
+                        base64: base64,
+                        description: 'Main Showcase' // Default description if needed, or leave empty
+                    });
+                }
+
+                // 2. Process Feature Uploads
+                const featureRows = document.querySelectorAll('.feature-item');
+                for (const row of featureRows) {
+                    const fileInput = row.querySelector('.feature-file');
+                    const captionInput = row.querySelector('.feature-caption');
+                    const file = fileInput.files[0];
+
+                    if (file) {
+                        if (file.size > MAX_SIZE_BYTES) {
+                            throw new Error(`Feature file "${file.name}" exceeds ${MAX_SIZE_MB}MB limit.`);
+                        }
+                        const base64 = await fileToBase64(file);
+                        showcases.push({
+                            order: nextOrder++,
+                            type: file.type.startsWith('image/gif') ? 'gif' : 'img',
+                            base64: base64,
+                            description: captionInput.value.trim() || 'Feature Screenshot'
+                        });
+                    }
+                }
+
+                if (showcases.length === 0) {
+                    statusDiv.style.color = '#f39c12';
+                    statusDiv.textContent = 'No files selected to upload.';
+                    return;
+                }
+
+                statusDiv.textContent = `Uploading ${showcases.length} asset(s)...`;
+
+                // 3. Send to Webhook
+                const response = await fetch(`${N8N_BASE_URL}/webhook/showcase`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        showcases: showcases
+                    })
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`Server returned ${response.status}: ${errText}`);
+                }
+
+                const data = await parseJSONResponse(response);
+                if (data.error) throw new Error(data.message || 'Unknown server error');
+
+                statusDiv.style.color = '#27ae60';
+                statusDiv.textContent = `✓ Successfully uploaded ${showcases.length} asset(s)!`;
+
+            } catch (error) {
+                console.error('Showcase upload error:', error);
+                statusDiv.style.color = '#c0392b';
+                statusDiv.textContent = `Upload failed: ${error.message}`;
+                showStatus(`Upload failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Toggle banner options
+        function toggleBannerOptions() {
+            const checkbox = document.getElementById('enableBanner');
+            const options = document.getElementById('bannerOptions');
+            options.style.display = checkbox.checked ? 'block' : 'none';
+        }
+
+        // Select logo position
+        function selectLogoPosition(position) {
+            selectedLogoPosition = position;
+            // Update button states
+            document.querySelectorAll('.logo-pos-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-position="${position}"]`).classList.add('active');
+        }
+
+        // Convert file to base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    // Remove data:image/...;base64, prefix
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Generate banner
+        async function generateBanner() {
+            if (!sessionId) {
+                showStatus('Error: No session ID. Please initialize session first.', 'error');
+                return;
+            }
+
+            const prompt = document.getElementById('bannerPrompt').value.trim();
+            if (!prompt) {
+                showStatus('Please enter a banner description', 'warning');
+                return;
+            }
+
+            const styleRefInput = document.getElementById('styleReference');
+            const logoInput = document.getElementById('logoImage');
+
+            showStatus('Generating banner... This may take 30-60 seconds...', 'info');
+
+            try {
+                // Convert files to base64
+                let styleRefBase64 = null;
+                let logoBase64 = null;
+
+                if (styleRefInput.files.length > 0) {
+                    styleRefBase64 = await fileToBase64(styleRefInput.files[0]);
+                }
+
+                if (logoInput.files.length > 0) {
+                    logoBase64 = await fileToBase64(logoInput.files[0]);
+                }
+
+                // Call n8n webhook
+                const response = await fetch(`${N8N_BASE_URL}/webhook/generate-banner`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        user_prompt: prompt,
+                        style_reference: styleRefBase64,
+                        logo_image: logoBase64,
+                        banner_type: document.querySelector('input[name="bannerType"]:checked').value,
+                        aspect_ratio: '16:9', // Fixed
+                        logo_position: 'top-center', // Fixed: TC
+                        logo_scale: 1.0 // Fixed
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    showStatus(`HTTP Error ${response.status}: ${errorText.substring(0, 100)}`, 'error');
+                    return;
+                }
+
+                const data = await parseJSONResponse(response);
+
+                if (data.error) {
+                    showStatus(`Error: ${data.message || 'Unknown error'}`, 'error');
+                    if (data.details) {
+                        console.error('Validation errors:', data.details);
+                    }
+                    return;
+                }
+
+                // Handle success
+                if (data.success && data.bannerUrl) {
+                    generatedBannerUrl = data.bannerUrl;
+
+                    // Show preview
+                    const previewDiv = document.getElementById('bannerPreview');
+                    const previewImg = document.getElementById('bannerPreviewImage');
+                    previewImg.src = data.bannerUrl;
+                    previewDiv.style.display = 'block';
+
+                    showStatus(`Banner generated successfully! (${data.aspectRatio})`, 'success');
+                } else {
+                    showStatus('Banner generation started. Waiting for completion...', 'info');
+                    // Poll for completion if needed
+                    // For now, assume synchronous response
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+                console.error('Generate banner error:', error);
+            }
+        }
+
+        // Handle OAuth callback (if redirected back from callback.html)
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const state = urlParams.get('state');
+
+            if (code && state) {
+                try {
+                    const stateData = JSON.parse(atob(state));
+
+                    // Clear URL parameters for clean URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+
+                    showStatus('Authentication successful! Processing repository...', 'success');
+
+                    // Initialize session with repo URL (this will set sessionId from backend response)
+                    initializeSession(stateData.repoUrl).then(success => {
+                        if (success) {
+                            document.getElementById('inputSection').classList.add('hidden');
+                        }
+                    });
+                } catch (error) {
+                    showStatus('Authentication error: ' + error.message, 'error');
+                    // Clear URL parameters on error too
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
