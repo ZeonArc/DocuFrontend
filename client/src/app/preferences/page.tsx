@@ -95,10 +95,43 @@ function LoadingTypewriter() {
   }, [msgIdx]);
 
   return (
-    <p className="font-body text-sm text-black font-medium leading-relaxed">
+    <span className="font-body text-sm text-black font-medium leading-relaxed">
       {text}
       <span className="inline-block w-[2px] h-[1em] bg-black ml-0.5 align-middle animate-pulse" />
-    </p>
+    </span>
+  );
+}
+
+function LabelTypewriter({ label, onComplete }: { label: string; onComplete?: () => void }) {
+  const [text, setText] = React.useState("");
+  const [done, setDone] = React.useState(false);
+
+  React.useEffect(() => {
+    let charIdx = 0;
+    let timeoutId: NodeJS.Timeout;
+
+    const tick = () => {
+      charIdx++;
+      setText(label.slice(0, charIdx));
+      if (charIdx >= label.length) {
+        setDone(true);
+        onComplete?.();
+        return;
+      }
+      timeoutId = setTimeout(tick, 55);
+    };
+
+    timeoutId = setTimeout(tick, 200);
+    return () => clearTimeout(timeoutId);
+  }, [label, onComplete]);
+
+  return (
+    <span className="block text-sm font-bold uppercase tracking-wider text-black">
+      {text}
+      {!done && (
+        <span className="inline-block w-[2px] h-[1em] bg-black ml-0.5 align-middle animate-pulse" />
+      )}
+    </span>
   );
 }
 
@@ -179,6 +212,18 @@ export default function PreferencesPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [animationComplete, setAnimationComplete] = useState(false);
+  const [showOutputLabel, setShowOutputLabel] = useState(false);
+
+  React.useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (animationComplete) {
+      timer = setTimeout(() => setShowOutputLabel(true), 1000);
+    } else {
+      setShowOutputLabel(false);
+    }
+    return () => clearTimeout(timer);
+  }, [animationComplete]);
+
   const [bannerError, setBannerError] = useState<string | null>(null);
 
   // --- Slide 4 State (Extra Media) ---
@@ -259,13 +304,22 @@ export default function PreferencesPage() {
         ? [...badges, "buymeacoffee"]
         : badges;
 
+    const processEmailLink = (val: string) => {
+      const trimmed = val.trim();
+      if (!trimmed) return trimmed;
+      if (trimmed.includes("@") && !trimmed.startsWith("mailto:") && !trimmed.startsWith("http")) {
+        return `mailto:${trimmed}`;
+      }
+      return trimmed;
+    };
+
     const preferences: Preferences = {
       tone: format === "detailed" ? "complex" : format,
       sections,
       badges: badgesWithSupport,
       include_toc: format === "complex" || format === "detailed",
-      contact_info: contactInfo,
-      support_link: supportInfo,
+      contact_info: processEmailLink(contactInfo),
+      support_link: processEmailLink(supportInfo),
     };
 
     try {
@@ -912,32 +966,33 @@ export default function PreferencesPage() {
                     </>
                   )}
 
-                  {/* Canvas animation — only when both reference images are uploaded */}
-                  {isGenerating && !animationComplete && styleReferencePreview && objectReferencePreview && (
-                    <BannerGenerationAnimation
-                      styleRefSrc={styleReferencePreview}
-                      objectRefSrc={objectReferencePreview}
-                      outputSrc={generatedImageUrl}
-                      onComplete={handleAnimationComplete}
-                    />
-                  )}
-
-                  {/* ── Typewriter loading in output area ─────────────────────── */}
+                  {/* ── Generating: single status line + canvas ─────────────── */}
                   {isGenerating && !animationComplete && (
-                    <div className="flex-1 flex items-center justify-center min-h-[180px]">
-                      <div className="max-w-lg w-full text-center space-y-3">
-                        <div className="flex items-center justify-center gap-3">
-                          <span className="w-4 h-4 rounded-full border-[3px] border-black border-t-transparent animate-spin flex-shrink-0"></span>
-                          <span className="font-mono text-[11px] text-zinc-400 uppercase tracking-widest">generating — usually 2–3 min</span>
-                        </div>
+                    <div className="space-y-2">
+                      {/* Single combined line: spinner + time hint + typewriter */}
+                      <div className="flex items-center gap-3">
+                        <span className="w-3.5 h-3.5 rounded-full border-[2.5px] border-black border-t-transparent animate-spin flex-shrink-0"></span>
+                        <span className="font-mono text-[11px] text-zinc-400 uppercase tracking-widest flex-shrink-0">2–3 min</span>
+                        <span className="text-zinc-300 flex-shrink-0">|</span>
                         <LoadingTypewriter />
                       </div>
+
+                      {/* Canvas animation — only when both reference images are uploaded */}
+                      {styleReferencePreview && objectReferencePreview && (
+                        <BannerGenerationAnimation
+                          styleRefSrc={styleReferencePreview}
+                          objectRefSrc={objectReferencePreview}
+                          outputSrc={generatedImageUrl}
+                          onComplete={handleAnimationComplete}
+                        />
+                      )}
                     </div>
                   )}
 
                   {/* ── Result: banner fetched from Supabase URL ─────────────────── */}
                   {animationComplete && (
-                    <div className="space-y-3">
+                    <div className="space-y-2">
+                      {showOutputLabel && <LabelTypewriter label="4. Output" />}
                       {generatedImageUrl && (
                         <div className="border-[3px] border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] overflow-hidden bg-white">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1089,7 +1144,7 @@ export default function PreferencesPage() {
                       onClick={handleGenerateReadme}
                       disabled={isGeneratingReadme}
                       className="w-full py-6 bg-white border-[3px] border-black text-black font-header font-black text-3xl uppercase tracking-widest hover:bg-black hover:text-white hover:-translate-y-2 hover:shadow-[12px_12px_0px_rgba(0,0,0,0.5)] transition-all shadow-[6px_6px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
-                      data-cursor="pointer"
+                      data-cursor={isGeneratingReadme ? "not-allowed" : "pointer"}
                     >
                       {isGeneratingReadme ? (
                         <span className="flex items-center justify-center gap-4">
