@@ -179,11 +179,26 @@ export const HERO_TYPOGRAPHY = {
     fontSize: 20,
     fontWeight: 300,
     fontFamily: "var(--font-body)",
+    width: 512,
+    height: 0,
+    xOffset: 0,
+    yOffset: 0,
+    innerXOffset: -10,
+    innerYOffset: -2,
   },
   uploadButton: {
     size: 85,
-    xOffset: -8,
+    xOffset: -10,
     yOffset: 1,
+  },
+  loadingAnimation: {
+    xOffset: 10,
+    yOffset: 5,
+    fontSize: 10,
+    segmentWidth: 10,
+    segmentHeight: 12,
+    segmentCount: 7,
+    fontFamily: "var(--font-pixel)",
   },
   cursors: {
     mascotFace: "pan",
@@ -712,6 +727,21 @@ export const CURSOR_CONFIG = {
 // Use this if you prefer accessing configs through a single namespace:
 //   SECTION_CONFIGS.hero.title.fontFamily
 // =============================================================================
+
+// =============================================================================
+// PREFERENCES PAGE CONFIG
+// =============================================================================
+// Variable: PREFERENCES_CONFIG
+// Location: Used in client/src/app/preferences/page.tsx
+// Controls: GitHub embed box offset on the Repository Connection slide
+// =============================================================================
+
+export const PREFERENCES_CONFIG = {
+  githubEmbed: {
+    xOffset: 0,
+    yOffset: -15,
+  },
+} as const;
 
 export const SECTION_CONFIGS = {
   header: HEADER_TYPOGRAPHY,

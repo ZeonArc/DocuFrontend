@@ -279,19 +279,14 @@ export async function generateBanner(
     "";
 
   // If the webhook returns success but no URL (background generation), fallback to predictable public URL
+  // PNG path: generated-banners/final-banner-{sessionId}/finalbanner.png
+  // GIF path: generated-banners/{sessionId}/final-banner.gif
   if (!bannerUrl && response.ok) {
-    const ext = params.banner_type === "gif" ? "gif" : "png";
-    bannerUrl = `https://rqecqirwmpmowvpezhki.supabase.co/storage/v1/object/public/generated-banners/${sessionId}/final-banner.${ext}`;
-  } else if (
-    bannerUrl &&
-    bannerUrl.includes("/storage/v1/object/") &&
-    !bannerUrl.includes("/storage/v1/object/public/")
-  ) {
-    // Fix Supabase URLs missing the /public/ segment
-    bannerUrl = bannerUrl.replace(
-      "/storage/v1/object/",
-      "/storage/v1/object/public/"
-    );
+    if (params.banner_type === "gif") {
+      bannerUrl = `https://rqecqirwmpmowvpezhki.supabase.co/storage/v1/object/generated-banners/${sessionId}/final-banner.gif`;
+    } else {
+      bannerUrl = `https://rqecqirwmpmowvpezhki.supabase.co/storage/v1/object/generated-banners/final-banner-${sessionId}/finalbanner.png`;
+    }
   }
 
   return { success: !!bannerUrl, bannerUrl };

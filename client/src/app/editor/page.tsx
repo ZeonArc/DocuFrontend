@@ -284,10 +284,15 @@ myProject.init({
         : "general";
 
       sendChatMessage(sessionId, fullPayload, markdown, sectionCtx)
-        .then((res) => {
-          if (res.revised_readme) {
-            setMarkdown(res.revised_readme);
-            localStorage.setItem("docugithub_readme", res.revised_readme);
+        .then(async (res) => {
+          // The webhook wrote the updated README to Supabase.
+          // Fetch the authoritative content from the readme_versions table.
+          const supabaseContent = await fetchReadmeFromSupabase(sessionId);
+          const updatedReadme = supabaseContent || res.revised_readme;
+
+          if (updatedReadme) {
+            setMarkdown(updatedReadme);
+            localStorage.setItem("docugithub_readme", updatedReadme);
             setChatMessages(prev => [...prev, {
               role: "ai" as const,
               text: `README updated! (v${res.version ?? "new"})`,

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import Image from "next/image";
 import gsap from "gsap";
+import { HERO_TYPOGRAPHY as HERO_CONFIG } from "@/config/sections";
 
 // Configuration for the expression layer's position and size
 // Adjust these values to fine-tune the face placement on the computer screen
@@ -40,20 +41,71 @@ function getOMouthPath(size = 1) {
 
 
 
-export default function ComputerMascot({ isTyping = false }: { isTyping?: boolean }) {
+export default function ComputerMascot({ isTyping = false, isLoading = false }: { isTyping?: boolean; isLoading?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const expressionRef = useRef<HTMLDivElement>(null);
   const leftEyeRef = useRef<HTMLDivElement>(null);
   const rightEyeRef = useRef<HTMLDivElement>(null);
   const mouthRef = useRef<SVGPathElement>(null);
   const cheeksRef = useRef<HTMLDivElement>(null);
-  
+  const loadingOverlayRef = useRef<HTMLDivElement>(null);
+  const segmentRefs = useRef<(HTMLDivElement | null)[]>([]);
+
   const isHovering = useRef(false);
   const isTypingRef = useRef(isTyping);
+  const isLoadingRef = useRef(isLoading);
 
   useEffect(() => {
     isTypingRef.current = isTyping;
   }, [isTyping]);
+
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
+
+  // Loading screen animation — swap face for "ANALYZING" + segmented bar
+  useEffect(() => {
+    const faceEls = [leftEyeRef.current, rightEyeRef.current, mouthRef.current?.closest("svg")].filter(Boolean);
+    const segments = segmentRefs.current.filter(Boolean) as HTMLDivElement[];
+
+    if (!isLoading) {
+      // Fade face back in, hide overlay
+      gsap.to(faceEls, { opacity: 1, duration: 0.3, ease: "power2.out" });
+      if (loadingOverlayRef.current) {
+        gsap.to(loadingOverlayRef.current, { opacity: 0, duration: 0.3, ease: "power2.in" });
+      }
+      segments.forEach(seg => gsap.set(seg, { opacity: 0.15 }));
+      return;
+    }
+
+    const ctx = gsap.context(() => {
+      // Fade face out
+      gsap.to(faceEls, { opacity: 0, duration: 0.25, ease: "power2.in" });
+
+      // Show overlay
+      if (loadingOverlayRef.current) {
+        gsap.fromTo(loadingOverlayRef.current,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.35, delay: 0.15, ease: "power2.out" }
+        );
+      }
+
+      // Stagger-fill segments in a loop
+      const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.6, delay: 0.3 });
+      tl.set(segments, { opacity: 0.15 });
+      tl.to(segments, {
+        opacity: 1,
+        duration: 0.15,
+        stagger: 0.2,
+        ease: "steps(1)",
+      });
+      // Brief hold at full, then reset
+      tl.to({}, { duration: 0.5 });
+      tl.set(segments, { opacity: 0.15 });
+    });
+
+    return () => ctx.revert();
+  }, [isLoading]);
 
   useEffect(() => {
     if (isHovering.current) return;
@@ -83,8 +135,8 @@ export default function ComputerMascot({ isTyping = false }: { isTyping?: boolea
     });
 
     const handleMouseMove = (e: MouseEvent) => {
-      // If hovering, let the hover interaction control the face
-      if (isHovering.current) return;
+      // If loading or hovering, let those interactions control the face
+      if (isLoadingRef.current || isHovering.current) return;
 
       if (!expressionRef.current || !containerRef.current) return;
 
@@ -165,6 +217,7 @@ export default function ComputerMascot({ isTyping = false }: { isTyping?: boolea
   }, []);
 
   const handleMouseEnter = () => {
+    if (isLoadingRef.current) return;
     isHovering.current = true;
     
     // Happy reaction animation
@@ -266,23 +319,72 @@ export default function ComputerMascot({ isTyping = false }: { isTyping?: boolea
         </svg>
 
         {/* Cheeks (Optional, adds charm) */}
-        <div 
-            ref={cheeksRef} 
-            className="absolute w-full flex justify-between opacity-0 transition-opacity"
+        <div
+            ref={cheeksRef}
+            className="absolute w-full flex justify-between"
             style={{
+                opacity: 0,
                 top: CHEEKS_CONFIG.top,
                 paddingLeft: CHEEKS_CONFIG.spread,
                 paddingRight: CHEEKS_CONFIG.spread,
             }}
         >
-            <div 
-                style={{ width: CHEEKS_CONFIG.width, height: CHEEKS_CONFIG.height }} 
-                className="bg-red-400 rounded-full blur-sm" 
+            <div
+                style={{ width: CHEEKS_CONFIG.width, height: CHEEKS_CONFIG.height }}
+                className="bg-red-400 rounded-full blur-sm"
             />
-            <div 
-                style={{ width: CHEEKS_CONFIG.width, height: CHEEKS_CONFIG.height }} 
-                className="bg-red-400 rounded-full blur-sm" 
+            <div
+                style={{ width: CHEEKS_CONFIG.width, height: CHEEKS_CONFIG.height }}
+                className="bg-red-400 rounded-full blur-sm"
             />
+        </div>
+
+        {/* Retro "ANALYZING" Loading Screen */}
+        <div
+          ref={loadingOverlayRef}
+          className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-0"
+          style={{
+            transform: `translate(${HERO_CONFIG.loadingAnimation.xOffset}px, ${HERO_CONFIG.loadingAnimation.yOffset}px)`,
+          }}
+        >
+          {/* ANALYZING text */}
+          <div
+
+            style={{
+              fontFamily: HERO_CONFIG.loadingAnimation.fontFamily,
+              fontSize: `${HERO_CONFIG.loadingAnimation.fontSize}px`,
+              color: "#000",
+              marginBottom: "8px",
+            }}
+          >
+            ANALYZING
+          </div>
+
+          {/* Segmented loading bar */}
+          <div
+            style={{
+              display: "flex",
+              gap: "3px",
+              padding: "3px",
+              border: "2.5px solid #000",
+              borderRadius: "4px",
+              backgroundColor: "#e5e5e5",
+            }}
+          >
+            {Array.from({ length: HERO_CONFIG.loadingAnimation.segmentCount }).map((_, i) => (
+              <div
+                key={i}
+                ref={el => { segmentRefs.current[i] = el; }}
+                style={{
+                  width: `${HERO_CONFIG.loadingAnimation.segmentWidth}px`,
+                  height: `${HERO_CONFIG.loadingAnimation.segmentHeight}px`,
+                  backgroundColor: "#000",
+                  borderRadius: "1.5px",
+                  opacity: 0.15,
+                }}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>
