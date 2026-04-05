@@ -3,6 +3,7 @@
 import React, { useMemo, CSSProperties } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 
 // ─── GitHub design tokens ────────────────────────────────────────────────────
 const GH = {
@@ -243,11 +244,11 @@ export default function GitHubPreview({
           src={src}
           alt={alt}
           style={{
-            display: "block",
+            display: "inline-block",
             maxWidth: "100%",
             boxSizing: "content-box",
             backgroundColor: GH.contentBg,
-            margin: "16px auto",
+            margin: "4px",
             borderRadius: "6px",
           }}
           {...props}
@@ -256,7 +257,9 @@ export default function GitHubPreview({
     },
 
     // ── Code (inline) ──
-    code: ({ node: _node, inline, className, children, ...props }: Record<string, unknown> & { node?: unknown; inline?: boolean; className?: string; children?: React.ReactNode }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    code: ({ node: _node, className, children, ...props }: any) => {
+      const inline = !String(className || "").startsWith("language-");
       const match = /language-(\w+)/.exec(className || "");
       const lang = match?.[1]?.toLowerCase();
 
@@ -447,19 +450,26 @@ export default function GitHubPreview({
         {...props}
       />
     ),
-    td: ({ node: _node, ...props }) => (
-      <td
-        style={{
-          padding: "6px 13px",
-          border: `1px solid ${GH.contentBorder}`,
-          color: GH.contentText,
-          ...ghFont,
-          fontSize: "16px",
-          lineHeight: "1.5",
-        }}
-        {...props}
-      />
-    ),
+    td: ({ node: _node, ...props }) => {
+      // Strip the deprecated `align` attribute — all-contributors HTML uses
+      // <td align="center"> which would override left-alignment.
+      const { align: _align, ...rest } = props as typeof props & { align?: string };
+      return (
+        <td
+          style={{
+            padding: "6px 13px",
+            border: `1px solid ${GH.contentBorder}`,
+            color: GH.contentText,
+            ...ghFont,
+            fontSize: "16px",
+            lineHeight: "1.5",
+            textAlign: "left",
+            verticalAlign: "top",
+          }}
+          {...rest}
+        />
+      );
+    },
 
     // ── Horizontal Rule ──
     hr: () => (
@@ -480,6 +490,14 @@ export default function GitHubPreview({
     ),
     em: ({ node: _node, ...props }) => (
       <em style={{ fontStyle: "italic", color: GH.contentText }} {...props} />
+    ),
+
+    // ── Details / Summary (Product Showcase toggle) ──
+    details: ({ node: _node, ...props }) => (
+      <details style={{ marginBottom: "16px" }} {...props} />
+    ),
+    summary: ({ node: _node, ...props }) => (
+      <summary style={{ cursor: "pointer", userSelect: "none" }} {...props} />
     ),
   };
 
@@ -758,7 +776,7 @@ export default function GitHubPreview({
               ...ghFont,
             }}
           >
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={components}>
               {markdown}
             </ReactMarkdown>
           </div>

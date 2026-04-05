@@ -12,11 +12,94 @@ import {
   savePreferences as savePreferencesApi,
   generateBanner,
   generateReadme,
+  fetchReadmeFromSupabase,
   uploadShowcase,
   fileToBase64,
   analyzeRepo,
 } from "@/lib/api";
 import type { Preferences } from "@/lib/api";
+
+// ─── Funny loading messages typewriter ───────────────────────────────────────
+
+const LOADING_MESSAGES = [
+  "Arranging pixels with surgical precision...",
+  "Asking the AI very nicely. It's ignoring us.",
+  "Downloading more RAM... just kidding. Maybe.",
+  "Breaking the fourth wall: hey you, yes you — go drink water.",
+  "Consulting the ancient README scrolls...",
+  "Polishing the developer's naturally curly hair... wait wrong job.",
+  "The developer who wrote this deserves a raise. And dinner. Just saying.",
+  "Training 47 neural networks to draw a rectangle...",
+  "Technically this is working. Philosophically, who knows.",
+  "Converting coffee to code to banner... ETA unknown.",
+  "Okay real talk — she coded this at 2am. Dinner. Minimum.",
+  "Whispering sweet nothings to the GPU...",
+  "Fun fact: this takes 2-3 mins. Grab a snack. You've earned it.",
+  "Negotiating with diffusion models. They drive a hard bargain.",
+  "Plot twist: the banner was inside us all along.",
+  "Applying 14 layers of artistic suffering...",
+  "Dev tip: if it looks wrong, squint and believe in yourself.",
+  "The AI is currently having an existential crisis. Please hold.",
+  "Generating gradients that spark joy...",
+  "Channelling the aesthetic energy of a sleep-deprived developer...",
+  "Your patience is being tracked. It's at 67% heroic.",
+  "Have you considered taking her out while this loads? Just a thought.",
+  "Turning vague vibes into precise pixels...",
+  "Fun fact: she shipped this instead of replying to texts. Respect.",
+  "Compiling hopes and dreams into image bytes...",
+  "Plot twist: the banner will look amazing. Trust the process.",
+  "Asking the latent space nicely. Still asking.",
+  "Buffering... not technically, but spiritually.",
+  "Almost there. Probably. The math suggests optimism.",
+  "Status: vibes are immaculate, pixels are cooperating.",
+  "Loading... like your DMs, but this one actually delivers.",
+  "Running on caffeine, chaos, and carefully crafted CSS.",
+  "The banner is being born. Respect the process.",
+  "Final checks: fonts ✓, colors ✓, existential dread ✓ — sending now.",
+];
+
+function LoadingTypewriter() {
+  const [text, setText] = React.useState("");
+  const [msgIdx, setMsgIdx] = React.useState(0);
+
+  React.useEffect(() => {
+    const msg = LOADING_MESSAGES[msgIdx % LOADING_MESSAGES.length];
+    let charIdx = 0;
+    let typing = true;
+    let timeoutId: NodeJS.Timeout;
+
+    const tick = () => {
+      if (typing) {
+        charIdx++;
+        setText(msg.slice(0, charIdx));
+        if (charIdx >= msg.length) {
+          typing = false;
+          timeoutId = setTimeout(tick, 1800);
+          return;
+        }
+        timeoutId = setTimeout(tick, 46);
+      } else {
+        charIdx--;
+        setText(msg.slice(0, charIdx));
+        if (charIdx <= 0) {
+          setMsgIdx((prev) => prev + 1);
+          return;
+        }
+        timeoutId = setTimeout(tick, 20);
+      }
+    };
+
+    timeoutId = setTimeout(tick, 46);
+    return () => clearTimeout(timeoutId);
+  }, [msgIdx]);
+
+  return (
+    <p className="font-body text-sm text-black font-medium leading-relaxed">
+      {text}
+      <span className="inline-block w-[2px] h-[1em] bg-black ml-0.5 align-middle animate-pulse" />
+    </p>
+  );
+}
 
 // Section name to backend ID mapping
 const SECTION_ID_MAP: Record<string, string> = {
@@ -30,7 +113,7 @@ const SECTION_ID_MAP: Record<string, string> = {
   "Contributors": "contributors",
   "License": "license",
   "Support": "support",
-  "Star History Chart": "star_chart",
+  "Star History Chart": "public_starchart",
 };
 
 // Badge name to backend ID mapping
@@ -94,8 +177,6 @@ export default function PreferencesPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [animationComplete, setAnimationComplete] = useState(false);
-  const [outputLabel, setOutputLabel] = useState("");
-  const [showLabelCursor, setShowLabelCursor] = useState(false);
   const [regenCooldown, setRegenCooldown] = useState(0);
   const [bannerError, setBannerError] = useState<string | null>(null);
 
@@ -167,11 +248,17 @@ export default function PreferencesPage() {
       .filter(([, checked]) => checked)
       .map(([name]) => BADGE_ID_MAP[name] || name);
 
+    // Auto-inject buymeacoffee badge when Support section is enabled and link is filled
+    const badgesWithSupport =
+      docMapSections["Support"] && supportInfo.trim()
+        ? [...badges, "buymeacoffee"]
+        : badges;
+
     const preferences: Preferences = {
-      tone: format,
+      tone: format === "detailed" ? "complex" : format,
       sections,
-      badges,
-      include_toc: true,
+      badges: badgesWithSupport,
+      include_toc: format === "complex" || format === "detailed",
       contact_info: contactInfo,
       support_link: supportInfo,
     };
@@ -192,8 +279,6 @@ export default function PreferencesPage() {
     setIsGenerating(true);
     setGeneratedImageUrl(null);
     setAnimationComplete(false);
-    setOutputLabel("");
-    setShowLabelCursor(false);
     setBannerError(null);
 
     try {
@@ -209,31 +294,54 @@ export default function PreferencesPage() {
 
       if (result.success && result.bannerUrl) {
         setBannerUrl(result.bannerUrl);
-        setGeneratedImageUrl(result.bannerUrl);
+        
+        // Only trigger animation if reference images were uploaded
+        if (!styleReferencePreview || !objectReferencePreview) {
+          // Fallback: poll the image here since we don't have the canvas animation fallback
+          let imageReady = false;
+          let attempts = 0;
+          while (!imageReady && attempts < 60) {
+            try {
+              // Cache bust the URL to avoid 404 browser cache lock
+              const sep = result.bannerUrl.includes("?") ? "&" : "?";
+              const res = await fetch(`${result.bannerUrl}${sep}t=${Date.now()}`, { method: "HEAD" });
+              if (res.ok) {
+                imageReady = true;
+              }
+            } catch {}
+            
+            if (!imageReady) {
+              await new Promise((r) => setTimeout(r, 5000));
+              attempts++;
+            }
+          }
+
+          if (!imageReady) {
+            setBannerError("Banner generation timed out. Please try again.");
+            setIsGenerating(false);
+            return;
+          }
+
+          setGeneratedImageUrl(result.bannerUrl);
+          // Skip the canvas animation — jump straight to showing the result
+          setAnimationComplete(true);
+        } else {
+          setGeneratedImageUrl(result.bannerUrl);
+        }
+        // If refs exist, the BannerGenerationAnimation component will call
+        // handleAnimationComplete once the canvas animation finishes
       } else {
         setBannerError("Banner generation failed. Please try again.");
         setIsGenerating(false);
       }
     } catch (err) {
-      setBannerError(err instanceof Error ? err.message : "Banner generation failed");
+      setBannerError(err instanceof Error ? err.message : "Banner generation failed. Please try again.");
       setIsGenerating(false);
     }
-  }, [bannerPrompt, sessionId, styleReferenceFile, objectReferenceFile, bannerType, setBannerUrl]);
+  }, [bannerPrompt, sessionId, styleReferenceFile, objectReferenceFile, bannerType, setBannerUrl, styleReferencePreview, objectReferencePreview]);
 
   const handleAnimationComplete = useCallback(() => {
     setAnimationComplete(true);
-    setShowLabelCursor(true);
-    // Type out "4) Output" character by character
-    const label = "4) Output";
-    let idx = 0;
-    const typeInterval = setInterval(() => {
-      idx++;
-      setOutputLabel(label.slice(0, idx));
-      if (idx >= label.length) {
-        clearInterval(typeInterval);
-        setShowLabelCursor(false);
-      }
-    }, 80);
   }, []);
 
   // Regenerate cooldown timer
@@ -290,9 +398,16 @@ export default function PreferencesPage() {
         await uploadShowcase(sessionId, showcaseItems);
       }
 
-      // Generate README
-      const readme = await generateReadme(sessionId, bannerUrl || undefined);
-      localStorage.setItem("docugithub_readme", readme);
+      // Trigger generation via n8n webhook — response may already include content
+      const webhookContent = await generateReadme(sessionId, bannerUrl || undefined);
+
+      // Try to get the authoritative content directly from Supabase
+      const supabaseContent = await fetchReadmeFromSupabase(sessionId);
+
+      // Prefer Supabase content (authoritative), fall back to webhook response
+      const readme = supabaseContent || webhookContent;
+      if (readme) localStorage.setItem("docugithub_readme", readme);
+      localStorage.setItem("docugithub_session_id_for_readme", sessionId);
       router.push("/editor");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to generate README");
@@ -772,13 +887,13 @@ export default function PreferencesPage() {
                       <div className="pt-2">
                         <button
                           onClick={handleGenerate}
-                          disabled={!bannerPrompt.trim() || !styleReferencePreview || !objectReferencePreview}
+                          disabled={!bannerPrompt.trim()}
                           className={`w-full py-4 border-[3px] border-black font-header font-black text-xl uppercase tracking-widest transition-all flex items-center justify-center ${
-                            !bannerPrompt.trim() || !styleReferencePreview || !objectReferencePreview
+                            !bannerPrompt.trim()
                               ? "bg-zinc-300 text-zinc-500 border-zinc-400 cursor-not-allowed shadow-none"
                               : "bg-black text-white hover:bg-zinc-800 shadow-[4px_4px_0px_rgba(0,0,0,0.5)] hover:-translate-y-1 active:translate-y-0 active:shadow-none"
                           }`}
-                          data-cursor={!bannerPrompt.trim() || !styleReferencePreview || !objectReferencePreview ? "not-allowed" : "pointer"}
+                          data-cursor={!bannerPrompt.trim() ? "not-allowed" : "pointer"}
                         >
                           Generate Banner
                         </button>
@@ -786,7 +901,7 @@ export default function PreferencesPage() {
                     </>
                   )}
 
-                  {/* Animation: Active generation */}
+                  {/* Canvas animation — only when both reference images are uploaded */}
                   {isGenerating && !animationComplete && styleReferencePreview && objectReferencePreview && (
                     <BannerGenerationAnimation
                       styleRefSrc={styleReferencePreview}
@@ -796,23 +911,49 @@ export default function PreferencesPage() {
                     />
                   )}
 
-                  {/* Result: After animation completes */}
+                  {/* ── Typewriter loading in output area ─────────────────────── */}
+                  {isGenerating && !animationComplete && (
+                    <div className="flex-1 flex items-center justify-center min-h-[180px]">
+                      <div className="max-w-lg w-full text-center space-y-3">
+                        <div className="flex items-center justify-center gap-3">
+                          <span className="w-4 h-4 rounded-full border-[3px] border-black border-t-transparent animate-spin flex-shrink-0"></span>
+                          <span className="font-mono text-[11px] text-zinc-400 uppercase tracking-widest">generating — usually 2–3 min</span>
+                        </div>
+                        <LoadingTypewriter />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Result: banner fetched from Supabase URL ─────────────────── */}
                   {animationComplete && (
                     <div className="space-y-3">
-                      {outputLabel && (
-                        <label className="block text-sm font-bold uppercase tracking-wider text-black">
-                          {outputLabel}
-                          {showLabelCursor && <span className="inline-block w-0.5 h-4 bg-black ml-0.5 animate-pulse" />}
-                        </label>
-                      )}
                       {generatedImageUrl && (
                         <div className="border-[3px] border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] overflow-hidden bg-white">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={generatedImageUrl}
                             alt="Generated banner"
-                            className="w-full h-auto object-contain max-h-[320px]"
+                            className="w-full h-auto object-contain max-h-[360px]"
+                            onError={(e) => {
+                              // If the URL fails to load, show a fallback message
+                              (e.currentTarget as HTMLImageElement).style.display = "none";
+                              const parent = (e.currentTarget as HTMLImageElement).parentElement;
+                              if (parent) parent.innerHTML = `<p class="p-4 font-mono text-sm text-red-600">Could not load image from: ${generatedImageUrl}</p>`;
+                            }}
                           />
+                        </div>
+                      )}
+                      {generatedImageUrl && (
+                        <div className="flex items-center justify-between text-xs font-mono text-zinc-500">
+                          <span className="text-green-700 font-bold uppercase tracking-wide">✓ Banner ready</span>
+                          <a
+                            href={generatedImageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline hover:text-black truncate max-w-[260px]"
+                          >
+                            open full size ↗
+                          </a>
                         </div>
                       )}
                       <button
@@ -820,8 +961,7 @@ export default function PreferencesPage() {
                           setIsGenerating(false);
                           setAnimationComplete(false);
                           setGeneratedImageUrl(null);
-                          setOutputLabel("");
-                          setShowLabelCursor(false);
+                          setBannerError(null);
                         }}
                         disabled={regenCooldown > 0}
                         className={`w-full py-4 border-[3px] font-header font-black text-xl uppercase tracking-widest transition-all flex items-center justify-center ${

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import GitHubPreview from "@/components/GitHubPreview";
 import { useSession } from "@/hooks/useSession";
-import { sendChatMessage, pushToGitHub } from "@/lib/api";
+import { sendChatMessage, pushToGitHub, fetchReadmeFromSupabase } from "@/lib/api";
 import {
   Bold, Italic,
   List, ListOrdered, Quote, Code,
@@ -95,12 +95,31 @@ myProject.init({
   const [selectionPopup, setSelectionPopup] = useState<SelectionPopup>(null);
   const [isMinimized, setIsMinimized] = useState(false);
 
-  const { sessionId } = useSession();
+  const { sessionId, hydrated } = useSession();
 
+  // useSession hydrates via its own useEffect, so sessionId is null on first render.
+  // Read the session ID directly from localStorage to avoid the race condition.
   useEffect(() => {
-    const saved = localStorage.getItem("docugithub_readme");
-    if (saved) setMarkdown(saved);
-  }, []);
+    if (!hydrated) return;
+
+    const sid =
+      localStorage.getItem("docugithub_session_id") ||
+      localStorage.getItem("docugithub_session_id_for_readme");
+
+    // Seed the editor immediately with whatever is cached
+    const cached = localStorage.getItem("docugithub_readme");
+    if (cached) setMarkdown(cached);
+
+    if (!sid) return;
+
+    // Fetch the authoritative content from Supabase and overwrite
+    fetchReadmeFromSupabase(sid).then((content) => {
+      if (content) {
+        setMarkdown(content);
+        localStorage.setItem("docugithub_readme", content);
+      }
+    });
+  }, [hydrated]);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);

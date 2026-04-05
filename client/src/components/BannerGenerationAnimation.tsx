@@ -260,38 +260,61 @@ export default function BannerGenerationAnimation({
   useEffect(() => {
     if (!outputSrc || outputReady.current) return;
 
-    const im = new Image();
-    im.crossOrigin = "anonymous";
-    im.onload = () => {
-      const cvs = canvasRef.current;
-      if (!cvs) return;
-      const rect = cvs.getBoundingClientRect();
-      const pts = particles.current;
-      const targets = sampleOutput(im, pts.length, rect.width, rect.height);
+    let stopped = false;
 
-      pts.forEach((p, i) => {
-        const t = targets[i % targets.length];
-        p.formTargetX = t.x;
-        p.formTargetY = t.y;
-        p.formTargetR = t.r;
-        p.formTargetG = t.g;
-        p.formTargetB = t.b;
-      });
-      outputReady.current = true;
+    const checkImage = () => {
+      if (typeof outputSrc !== "string") return;
+      const im = new Image();
+      im.crossOrigin = "anonymous";
+      
+      im.onload = () => {
+        if (stopped) return;
+        const cvs = canvasRef.current;
+        if (!cvs) return;
+        const rect = cvs.getBoundingClientRect();
+        const pts = particles.current;
+        const targets = sampleOutput(im, pts.length, rect.width, rect.height);
 
-      if (phase.current === "wait") {
-        for (const p of pts) {
-          p.formStartX = p.waitGridX;
-          p.formStartY = p.waitGridY;
-          p.r = BASE_DOT.r;
-          p.g = BASE_DOT.g;
-          p.b = BASE_DOT.b;
+        pts.forEach((p, i) => {
+          const t = targets[i % targets.length];
+          p.formTargetX = t.x;
+          p.formTargetY = t.y;
+          p.formTargetR = t.r;
+          p.formTargetG = t.g;
+          p.formTargetB = t.b;
+        });
+        outputReady.current = true;
+
+        if (phase.current === "wait") {
+          for (const p of pts) {
+            p.formStartX = p.waitGridX;
+            p.formStartY = p.waitGridY;
+            p.r = BASE_DOT.r;
+            p.g = BASE_DOT.g;
+            p.b = BASE_DOT.b;
+          }
+          phase.current = "form";
+          t0.current = performance.now();
         }
-        phase.current = "form";
-        t0.current = performance.now();
-      }
+      };
+
+      im.onerror = () => {
+        if (!stopped) {
+          // Poll again in 5 seconds if image 404s (generation still running)
+          setTimeout(checkImage, 5000);
+        }
+      };
+
+      // Cache-bust the URL to prevent the browser from caching the 404
+      const sep = outputSrc.includes("?") ? "&" : "?";
+      im.src = `${outputSrc}${sep}t=${Date.now()}`;
     };
-    im.src = outputSrc;
+
+    checkImage();
+
+    return () => {
+      stopped = true;
+    };
   }, [outputSrc]);
 
   /* ── 3. Animation loop ── */

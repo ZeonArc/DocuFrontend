@@ -1,5 +1,14 @@
 const N8N_BASE_URL = "/api";
 
+// Fix Supabase storage URLs that are missing /public/ or have a double slash
+function fixSupabaseStorageUrls(content: string): string {
+  return content
+    // Fix double-slash: /object//generated-banners → /object/public/generated-banners
+    .replace(/\/storage\/v1\/object\/\/generated-banners/g, "/storage/v1/object/public/generated-banners")
+    // Fix missing /public/: /object/generated-banners → /object/public/generated-banners
+    .replace(/\/storage\/v1\/object\/(?!public\/)generated-banners/g, "/storage/v1/object/public/generated-banners");
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface RepoInfo {
@@ -209,50 +218,83 @@ export async function generateReadme(
   }
 
   const data = await response.json();
-  // The response may use different keys
-  return data.raw_readme || data.output || data.readme || data.content || "";
+  const raw = data.raw_readme || data.output || data.readme || data.content || "";
+  return fixSupabaseStorageUrls(raw);
+}
+
+// Fetches the README content directly from Supabase via the server-side route.
+// Retries up to 3 times in case Supabase hasn't written yet.
+export async function fetchReadmeFromSupabase(sessionId: string): Promise<string> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 2000));
+    const res = await fetch(`/api/readme?session_id=${encodeURIComponent(sessionId)}`, { cache: "no-store" });
+    if (!res.ok) continue;
+    const data = await res.json();
+    if (data.content) return fixSupabaseStorageUrls(data.content);
+  }
+  return "";
 }
 
 export async function generateBanner(
   sessionId: string,
   params: BannerParams
 ): Promise<BannerResponse> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+  // No client-side AbortController — the server-side proxy enforces a 6-minute
+  // hard limit and returns a well-formed 504 JSON if n8n doesn't respond in time.
+  // Adding a shorter client timeout here would race the proxy and produce an
+  // opaque AbortError instead of a useful error message.
+  const response = await fetch(`${N8N_BASE_URL}/webhook/generate-banner`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      session_id: sessionId,
+      user_prompt: params.user_prompt,
+      style_reference: params.style_reference,
+      logo_image: params.logo_image,
+      banner_type: params.banner_type,
+      aspect_ratio: params.aspect_ratio || "16:9",
+      logo_position: params.logo_position || "top-center",
+      logo_scale: params.logo_scale ?? 1.0,
+    }),
+  });
 
-  try {
-    const response = await fetch(`${N8N_BASE_URL}/webhook/generate-banner`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        session_id: sessionId,
-        user_prompt: params.user_prompt,
-        style_reference: params.style_reference,
-        logo_image: params.logo_image,
-        banner_type: params.banner_type,
-        aspect_ratio: params.aspect_ratio || "16:9",
-        logo_position: params.logo_position || "top-center",
-        logo_scale: params.logo_scale ?? 1.0,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Generate banner failed: ${response.statusText}`);
+  if (!response.ok) {
+    // Try to surface the actual error message from the proxy JSON body
+    let errorMsg = `Banner generation failed (${response.status})`;
+    try {
+      const errBody = await response.json();
+      if (errBody?.message) errorMsg = errBody.message;
+    } catch {
+      // ignore parse failure
     }
-
-    const data = await response.json();
-    const record = Array.isArray(data) ? data[0] : data;
-    const bannerUrl =
-      record?.final_banner_url ||
-      record?.banner_url ||
-      record?.bannerUrl ||
-      "";
-
-    return { success: !!bannerUrl, bannerUrl };
-  } finally {
-    clearTimeout(timeoutId);
+    throw new Error(errorMsg);
   }
+
+  const data = await response.json();
+  const record = Array.isArray(data) ? data[0] : data;
+  let bannerUrl =
+    record?.final_banner_url ||
+    record?.banner_url ||
+    record?.bannerUrl ||
+    "";
+
+  // If the webhook returns success but no URL (background generation), fallback to predictable public URL
+  if (!bannerUrl && response.ok) {
+    const ext = params.banner_type === "gif" ? "gif" : "png";
+    bannerUrl = `https://rqecqirwmpmowvpezhki.supabase.co/storage/v1/object/public/generated-banners/${sessionId}/final-banner.${ext}`;
+  } else if (
+    bannerUrl &&
+    bannerUrl.includes("/storage/v1/object/") &&
+    !bannerUrl.includes("/storage/v1/object/public/")
+  ) {
+    // Fix Supabase URLs missing the /public/ segment
+    bannerUrl = bannerUrl.replace(
+      "/storage/v1/object/",
+      "/storage/v1/object/public/"
+    );
+  }
+
+  return { success: !!bannerUrl, bannerUrl };
 }
 
 export async function uploadShowcase(
