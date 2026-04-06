@@ -235,6 +235,27 @@ export async function fetchReadmeFromSupabase(sessionId: string): Promise<{ cont
   return { content: "", version: 1 };
 }
 
+// Overwrites the content of the latest readme_versions row for the session.
+// Throws on any non-2xx response so callers can surface the error in the UI.
+export async function syncReadmeToSupabase(
+  sessionId: string,
+  content: string
+): Promise<void> {
+  const res = await fetch("/api/readme", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ session_id: sessionId, content }),
+  });
+  if (!res.ok) {
+    let detail = `Save failed (${res.status})`;
+    try {
+      const body = await res.json();
+      if (body?.error) detail = body.error;
+    } catch { /* ignore */ }
+    throw new Error(detail);
+  }
+}
+
 export async function generateBanner(
   sessionId: string,
   params: BannerParams

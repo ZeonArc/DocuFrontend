@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import GitHubPreview from "@/components/GitHubPreview";
 import { useSession } from "@/hooks/useSession";
-import { sendChatMessage, pushToGitHub, fetchReadmeFromSupabase } from "@/lib/api";
+import { sendChatMessage, pushToGitHub, fetchReadmeFromSupabase, syncReadmeToSupabase } from "@/lib/api";
 import {
   Bold, Italic,
   List, ListOrdered, Quote, Code,
@@ -124,6 +124,30 @@ myProject.init({
   const router = useRouter();
   const { sessionId, repoInfo, hydrated } = useSession();
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const handleManualSave = useCallback(async () => {
+    if (!sessionId || isSaving) return;
+    setIsSaving(true);
+    setSaveSuccess(false);
+    setSaveError(null);
+    try {
+      await syncReadmeToSupabase(sessionId, markdown);
+      setSaveSuccess(true);
+      setHasUnsavedChanges(false);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Save failed";
+      setSaveError(msg);
+      setTimeout(() => setSaveError(null), 3000);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [sessionId, markdown, isSaving]);
+
   // useSession hydrates via its own useEffect, so sessionId is null on first render.
   // Read the session ID directly from localStorage to avoid the race condition.
   useEffect(() => {
@@ -146,6 +170,7 @@ myProject.init({
         localStorage.setItem("docugithub_readme", content);
       }
       setReadmeVersion(version);
+      setHasUnsavedChanges(false);
     });
   }, [hydrated]);
 
@@ -178,6 +203,7 @@ myProject.init({
     const defaultText = (start === end && suffix) ? "text" : selectedText;
     const newText = text.substring(0, start) + prefix + defaultText + suffix + text.substring(end);
     setMarkdown(newText);
+    setHasUnsavedChanges(true);
     setTimeout(() => {
       el.focus({ preventScroll: true });
       el.setSelectionRange(start + prefix.length, start + prefix.length + defaultText.length);
@@ -362,9 +388,10 @@ myProject.init({
           if (updatedReadme) {
             setMarkdown(updatedReadme);
             localStorage.setItem("docugithub_readme", updatedReadme);
+            setHasUnsavedChanges(false);
             setChatMessages(prev => [...prev, {
               role: "ai" as const,
-              text: `README updated! (v${res.version ?? "new"})`,
+              text: "Your readme revision request has been processed. Do let me know if you need anything else :3",
             }]);
           } else {
             setChatMessages(prev => [...prev, {
@@ -412,6 +439,7 @@ myProject.init({
         const newText = text.substring(0, start) + nextMarker + text.substring(start);
         const scrollTop = el.scrollTop;
         setMarkdown(newText);
+        setHasUnsavedChanges(true);
         setTimeout(() => {
           el.focus({ preventScroll: true });
           el.setSelectionRange(start + nextMarker.length, start + nextMarker.length);
@@ -428,6 +456,7 @@ myProject.init({
         const newText = text.substring(0, start) + nextMarker + text.substring(start);
         const scrollTop = el.scrollTop;
         setMarkdown(newText);
+        setHasUnsavedChanges(true);
         setTimeout(() => {
           el.focus({ preventScroll: true });
           el.setSelectionRange(start + nextMarker.length, start + nextMarker.length);
@@ -458,6 +487,7 @@ myProject.init({
         const newText = text.substring(0, start - currentLine.length) + text.substring(start);
         const scrollTop = el.scrollTop;
         setMarkdown(newText);
+        setHasUnsavedChanges(true);
         setTimeout(() => {
           el.focus({ preventScroll: true });
           el.setSelectionRange(start - currentLine.length, start - currentLine.length);
@@ -510,6 +540,10 @@ myProject.init({
             <button
               onClick={async () => {
                 if (!sessionId) return;
+                if (hasUnsavedChanges) {
+                  alert("You have unsaved changes. Please save your edits first before pushing to GitHub.");
+                  return;
+                }
                 if (!confirm("This will update README.md in your repository. Continue?")) return;
                 try {
                   const res = await pushToGitHub(sessionId, markdown);
@@ -518,11 +552,16 @@ myProject.init({
                   alert(err instanceof Error ? err.message : "Push failed");
                 }
               }}
-              className="flex items-center space-x-2 px-6 py-3 bg-black border-2 border-black font-header font-bold uppercase tracking-wide text-white hover:bg-zinc-800 transition-colors shadow-[4px_4px_0px_rgba(0,0,0,0.3)] active:translate-y-1 active:shadow-none"
+              className={`flex items-center space-x-2 px-6 py-3 border-2 font-header font-bold uppercase tracking-wide transition-colors shadow-[4px_4px_0px_rgba(0,0,0,0.3)] active:translate-y-1 active:shadow-none ${
+                hasUnsavedChanges
+                  ? "bg-amber-400 border-amber-500 text-black hover:bg-amber-300"
+                  : "bg-black border-black text-white hover:bg-zinc-800"
+              }`}
               data-cursor="pointer"
+              title={hasUnsavedChanges ? "Unsaved changes — save first before pushing" : "Push to GitHub"}
             >
               <Github className="w-5 h-5" />
-              <span>Push to GitHub</span>
+              <span>{hasUnsavedChanges ? "Save First" : "Push to GitHub"}</span>
             </button>
           </div>
         </header>
@@ -547,6 +586,40 @@ myProject.init({
                   {tool.icon}
                 </button>
               ))}
+
+              {/* Spacer pushes save to the right */}
+              <div className="flex-1" />
+
+              {/* Divider */}
+              <div className="w-px h-6 bg-black/20 mx-1 shrink-0" />
+
+              {/* Manual Save */}
+              <button
+                type="button"
+                title={
+                  saveError ? saveError
+                  : saveSuccess ? "Saved!"
+                  : hasUnsavedChanges ? "Unsaved changes — click to save"
+                  : "Save to Supabase"
+                }
+                onClick={handleManualSave}
+                disabled={isSaving || !sessionId}
+                data-cursor="pointer"
+                className={`relative p-2 border-2 transition-all rounded-none ${
+                  saveError
+                    ? "border-red-500 bg-red-50 text-red-600"
+                    : saveSuccess
+                    ? "border-green-600 bg-green-50 text-green-700"
+                    : hasUnsavedChanges
+                    ? "border-amber-400 bg-amber-50 text-black"
+                    : "border-transparent hover:border-black hover:bg-[#f2f2f2] text-black"
+                } disabled:opacity-40 disabled:cursor-not-allowed`}
+              >
+                <Save className={`w-5 h-5 ${isSaving ? "animate-pulse" : ""}`} />
+                {hasUnsavedChanges && !saveSuccess && !saveError && (
+                  <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-amber-500" />
+                )}
+              </button>
             </div>
 
             {/* Text Area */}
@@ -554,7 +627,7 @@ myProject.init({
                 <Textarea
                   ref={textareaRef}
                   value={markdown}
-                  onChange={(e) => setMarkdown(e.target.value)}
+                  onChange={(e) => { setMarkdown(e.target.value); setHasUnsavedChanges(true); }}
                   onKeyDown={handleEditorKeyDown}
                   className="w-full h-full bg-transparent border-none text-black font-mono text-base leading-relaxed resize-none focus-visible:ring-0 p-6 selection:bg-black selection:text-white"
                   placeholder="Start typing your markdown here..."
