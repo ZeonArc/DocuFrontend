@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Supabase env vars not configured" }, { status: 500 });
   }
 
-  const url = `${supabaseUrl}/rest/v1/readme_versions?session_id=eq.${encodeURIComponent(sessionId)}&select=content&order=created_at.desc&limit=1`;
+  const url = `${supabaseUrl}/rest/v1/readme_versions?session_id=eq.${encodeURIComponent(sessionId)}&select=content,version&order=created_at.desc&limit=1`;
 
   const res = await fetch(url, {
     cache: "no-store",
@@ -38,10 +38,11 @@ export async function GET(request: NextRequest) {
 
   const rows = await res.json();
   const content: string = rows[0]?.content ?? "";
+  const version: number = rows[0]?.version ?? 1;
 
   if (!content) {
     console.warn(`[/api/readme] No content found for session_id=${sessionId}. Row count: ${rows.length}`);
   }
 
-  return NextResponse.json({ content });
+  return NextResponse.json({ content, version });
 }

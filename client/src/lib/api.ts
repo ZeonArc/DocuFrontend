@@ -224,15 +224,15 @@ export async function generateReadme(
 
 // Fetches the README content directly from Supabase via the server-side route.
 // Retries up to 3 times in case Supabase hasn't written yet.
-export async function fetchReadmeFromSupabase(sessionId: string): Promise<string> {
+export async function fetchReadmeFromSupabase(sessionId: string): Promise<{ content: string; version: number }> {
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, 2000));
     const res = await fetch(`/api/readme?session_id=${encodeURIComponent(sessionId)}`, { cache: "no-store" });
     if (!res.ok) continue;
     const data = await res.json();
-    if (data.content) return fixSupabaseStorageUrls(data.content);
+    if (data.content) return { content: fixSupabaseStorageUrls(data.content), version: data.version ?? 1 };
   }
-  return "";
+  return { content: "", version: 1 };
 }
 
 export async function generateBanner(

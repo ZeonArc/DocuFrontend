@@ -450,10 +450,10 @@ export default function PreferencesPage() {
       const webhookContent = await generateReadme(sessionId, bannerUrl || undefined);
 
       // Try to get the authoritative content directly from Supabase
-      const supabaseContent = await fetchReadmeFromSupabase(sessionId);
+      const supabaseResult = await fetchReadmeFromSupabase(sessionId);
 
       // Prefer Supabase content (authoritative), fall back to webhook response
-      const readme = supabaseContent || webhookContent;
+      const readme = supabaseResult.content || webhookContent;
       if (readme) localStorage.setItem("docugithub_readme", readme);
       localStorage.setItem("docugithub_session_id_for_readme", sessionId);
       router.push("/editor");

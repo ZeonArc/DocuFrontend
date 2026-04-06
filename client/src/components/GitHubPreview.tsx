@@ -61,7 +61,7 @@ interface GitHubPreviewProps {
   repoName?: string;
 }
 
-export default function GitHubPreview({
+export default React.memo(function GitHubPreview({
   markdown,
   repoOwner = "username",
   repoName = "your-repo",
@@ -451,9 +451,9 @@ export default function GitHubPreview({
       />
     ),
     td: ({ node: _node, ...props }) => {
-      // Strip the deprecated `align` attribute — all-contributors HTML uses
-      // <td align="center"> which would override left-alignment.
-      const { align: _align, ...rest } = props as typeof props & { align?: string };
+      // Strip deprecated HTML attributes — all-contributors HTML uses
+      // <td align="center" valign="top"> which React rejects as unknown DOM props.
+      const { align: _align, vAlign: _vAlign, ...rest } = props as typeof props & { align?: string; vAlign?: string };
       return (
         <td
           style={{
@@ -497,7 +497,11 @@ export default function GitHubPreview({
       <details style={{ marginBottom: "16px" }} {...props} />
     ),
     summary: ({ node: _node, ...props }) => (
-      <summary style={{ cursor: "pointer", userSelect: "none" }} {...props} />
+      <summary style={{ cursor: "var(--cursor-pointer)", userSelect: "none" }} {...props} />
+    ),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    div: ({ node: _node, align, ...props }: any) => (
+      <div style={{ textAlign: align || undefined }} {...props} />
     ),
   };
 
@@ -529,7 +533,9 @@ export default function GitHubPreview({
         {/* Breadcrumb */}
         <nav style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "14px" }}>
           <a
-            href="#"
+            href={`https://github.com/${repoOwner}`}
+            target="_blank"
+            rel="noopener noreferrer"
             style={{ color: GH.pageText, fontWeight: 600, textDecoration: "none" }}
             onMouseEnter={(e) => ((e.target as HTMLElement).style.textDecoration = "underline")}
             onMouseLeave={(e) => ((e.target as HTMLElement).style.textDecoration = "none")}
@@ -538,7 +544,9 @@ export default function GitHubPreview({
           </a>
           <span style={{ color: GH.pageMuted }}>/</span>
           <a
-            href="#"
+            href={`https://github.com/${repoOwner}/${repoName}`}
+            target="_blank"
+            rel="noopener noreferrer"
             style={{ color: GH.pageText, fontWeight: 600, textDecoration: "none" }}
             onMouseEnter={(e) => ((e.target as HTMLElement).style.textDecoration = "underline")}
             onMouseLeave={(e) => ((e.target as HTMLElement).style.textDecoration = "none")}
@@ -570,7 +578,7 @@ export default function GitHubPreview({
                 color: GH.btnText,
                 fontSize: "12px",
                 fontWeight: 600,
-                cursor: "var(--cursor-pointer)",
+                cursor: "var(--cursor-not-allowed)",
                 ...ghFont,
               }}
             >
@@ -624,7 +632,7 @@ export default function GitHubPreview({
               borderBottom: active
                 ? "2px solid #f78166"
                 : "2px solid transparent",
-              cursor: "var(--cursor-pointer)",
+              cursor: "var(--cursor-not-allowed)",
               whiteSpace: "nowrap",
               fontWeight: active ? 600 : 400,
               ...ghFont,
@@ -735,7 +743,7 @@ export default function GitHubPreview({
                     backgroundColor: "transparent",
                     border: `1px solid ${GH.contentBorder}`,
                     borderRadius: "6px",
-                    cursor: "var(--cursor-pointer)",
+                    cursor: "var(--cursor-not-allowed)",
                     ...ghFont,
                     lineHeight: "20px",
                   }}
@@ -750,7 +758,7 @@ export default function GitHubPreview({
                   backgroundColor: "transparent",
                   border: `1px solid ${GH.contentBorder}`,
                   borderRadius: "6px",
-                  cursor: "var(--cursor-pointer)",
+                  cursor: "var(--cursor-not-allowed)",
                   display: "flex",
                   alignItems: "center",
                 }}
@@ -787,4 +795,4 @@ export default function GitHubPreview({
       </div>
     </div>
   );
-}
+});
