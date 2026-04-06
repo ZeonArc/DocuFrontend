@@ -171,7 +171,9 @@ myProject.init({
       }
       setReadmeVersion(version);
       setHasUnsavedChanges(false);
+      startCooldown();
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -413,7 +415,7 @@ myProject.init({
   const handleChatKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (cooldownRemaining === 0) sendMessage();
+      if (editingAttachmentId || cooldownRemaining === 0) sendMessage();
     }
   };
 
@@ -903,18 +905,18 @@ myProject.init({
                       <div className="relative group shrink-0">
                         <button
                           onClick={sendMessage}
-                          disabled={cooldownRemaining > 0 || isTyping || (!editingAttachmentId && !chatInput.trim() && attachedComments.length === 0)}
+                          disabled={editingAttachmentId ? false : (cooldownRemaining > 0 || isTyping || (!chatInput.trim() && attachedComments.length === 0))}
                           className="w-10 h-10 bg-black text-white border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_rgba(0,0,0,0.3)] hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed active:translate-y-0.5 active:shadow-none"
                         >
-                          {cooldownRemaining > 0 ? (
-                            <span className="text-[10px] font-bold tabular-nums leading-none">{cooldownRemaining}</span>
-                          ) : editingAttachmentId ? (
+                          {editingAttachmentId ? (
                             <Save className="w-4 h-4" />
+                          ) : cooldownRemaining > 0 ? (
+                            <span className="text-[10px] font-bold tabular-nums leading-none">{cooldownRemaining}</span>
                           ) : (
                             <Send className="w-4 h-4" />
                           )}
                         </button>
-                        {cooldownRemaining > 0 && (
+                        {!editingAttachmentId && cooldownRemaining > 0 && (
                           <div className="absolute bottom-[calc(100%+12px)] right-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[110] whitespace-nowrap bg-black text-white text-[10px] tracking-widest font-bold uppercase px-3 py-1.5 border border-black shadow-[2px_2px_0px_rgba(0,0,0,0.5)]">
                             Available in {cooldownRemaining}s
                             {/* Small downward pointing triangle relative to the tooltip */}
