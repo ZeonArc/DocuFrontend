@@ -167,10 +167,17 @@ export default function Hero() {
         </p>
 
         {/* Input Container */}
-        <div className="relative w-full max-w-lg">
+        <div 
+          className="relative w-full"
+          style={{
+            maxWidth: `${HERO_CONFIG.inputBox.width}px`,
+            transform: `translate(${HERO_CONFIG.inputBox.xOffset}px, ${HERO_CONFIG.inputBox.yOffset}px)`,
+          }}
+        >
           <div
             className="relative flex items-center"
             style={{
+              height: HERO_CONFIG.inputBox.height > 0 ? `${HERO_CONFIG.inputBox.height}px` : "auto",
               backgroundColor: HERO_CONFIG.inputBox.containerBackgroundColor,
               borderColor: error ? "#ef4444" : HERO_CONFIG.inputBox.borderColor,
               borderWidth: `${HERO_CONFIG.inputBox.borderWidth}px`,
@@ -192,6 +199,7 @@ export default function Hero() {
                 fontWeight: HERO_CONFIG.inputBox.fontWeight,
                 fontSize: `${HERO_CONFIG.inputBox.fontSize}px`,
                 color: HERO_CONFIG.inputBox.textColor,
+                transform: `translate(${HERO_CONFIG.inputBox.innerXOffset}px, ${HERO_CONFIG.inputBox.innerYOffset}px)`,
                 "--placeholder-color": HERO_CONFIG.inputBox.placeholderColor,
               } as React.CSSProperties}
               value={repoUrl}
@@ -202,37 +210,21 @@ export default function Hero() {
                 if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
               }}
             />
-          </div>
 
-          {/* Error Message */}
-          {error && (
-            <p className="text-red-500 text-sm font-bold mt-2">{error}</p>
-          )}
-
-          {/* Upload Button */}
-          <button
-            data-upload-trigger
-            className="absolute hover:scale-108 transition-transform duration-200"
-            style={{
-              right: `${HERO_CONFIG.uploadButton.xOffset}px`,
-              top: `calc(50% + ${HERO_CONFIG.uploadButton.yOffset}px)`,
-              transform: 'translateY(-50%)',
-              width: `${HERO_CONFIG.uploadButton.size}px`,
-              height: `${HERO_CONFIG.uploadButton.size}px`,
-              opacity: isLoading ? 0.5 : 1,
-            }}
-            onClick={handleSubmit}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <span
-                className="block rounded-full border-4 border-black border-t-transparent animate-spin"
-                style={{
-                  width: `${HERO_CONFIG.uploadButton.size}px`,
-                  height: `${HERO_CONFIG.uploadButton.size}px`,
-                }}
-              />
-            ) : (
+            {/* Upload Button — inside input box so it moves with it */}
+            <button
+              data-upload-trigger
+              className="absolute hover:scale-108 transition-transform duration-200"
+              style={{
+                right: `${HERO_CONFIG.uploadButton.xOffset}px`,
+                top: `calc(50% + ${HERO_CONFIG.uploadButton.yOffset}px)`,
+                transform: 'translateY(-50%)',
+                width: `${HERO_CONFIG.uploadButton.size}px`,
+                height: `${HERO_CONFIG.uploadButton.size}px`,
+              }}
+              onClick={handleSubmit}
+              disabled={isLoading}
+            >
               <Image
                 src="/hero-upload-button.png"
                 alt="Upload"
@@ -240,13 +232,18 @@ export default function Hero() {
                 height={HERO_CONFIG.uploadButton.size}
                 className="w-full h-full object-contain"
               />
-            )}
-          </button>
+            </button>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <p className="text-red-500 text-sm font-bold mt-2">{error}</p>
+          )}
         </div>
       </div>
 
       <div ref={mascotRef} className="relative w-full md:w-1/2 flex justify-center mt-12 md:mt-0 pb-12 md:pb-0 z-0">
-         <ComputerMascot isTyping={isTyping} />
+         <ComputerMascot isTyping={isTyping} isLoading={isLoading} />
       </div>
     </section>
   );

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Kanit } from "next/font/google";
+import { Kanit, Press_Start_2P } from "next/font/google";
 import "./globals.css";
 import { CursorProvider } from "@/components/custom-cursor";
 
@@ -7,6 +7,12 @@ const kanit = Kanit({
   subsets: ["latin"],
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
   variable: "--font-kanit",
+});
+
+const pressStart2P = Press_Start_2P({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-pixel",
 });
 
 export const metadata: Metadata = {
@@ -20,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${kanit.variable} font-body antialiased`}>
+    <html lang="en" suppressHydrationWarning className={`${kanit.variable} ${pressStart2P.variable} font-body antialiased`}>
       <head>
         <link rel="stylesheet" href="https://use.typekit.net/kag3qbi.css" />
         <link rel="preload" href="/videos/footer-d4rkpho3nix.mp4" as="video" type="video/mp4" />

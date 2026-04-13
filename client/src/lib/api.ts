@@ -224,15 +224,36 @@ export async function generateReadme(
 
 // Fetches the README content directly from Supabase via the server-side route.
 // Retries up to 3 times in case Supabase hasn't written yet.
-export async function fetchReadmeFromSupabase(sessionId: string): Promise<string> {
+export async function fetchReadmeFromSupabase(sessionId: string): Promise<{ content: string; version: number }> {
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, 2000));
     const res = await fetch(`/api/readme?session_id=${encodeURIComponent(sessionId)}`, { cache: "no-store" });
     if (!res.ok) continue;
     const data = await res.json();
-    if (data.content) return fixSupabaseStorageUrls(data.content);
+    if (data.content) return { content: fixSupabaseStorageUrls(data.content), version: data.version ?? 1 };
   }
-  return "";
+  return { content: "", version: 1 };
+}
+
+// Overwrites the content of the latest readme_versions row for the session.
+// Throws on any non-2xx response so callers can surface the error in the UI.
+export async function syncReadmeToSupabase(
+  sessionId: string,
+  content: string
+): Promise<void> {
+  const res = await fetch("/api/readme", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ session_id: sessionId, content }),
+  });
+  if (!res.ok) {
+    let detail = `Save failed (${res.status})`;
+    try {
+      const body = await res.json();
+      if (body?.error) detail = body.error;
+    } catch { /* ignore */ }
+    throw new Error(detail);
+  }
 }
 
 export async function generateBanner(
@@ -279,19 +300,14 @@ export async function generateBanner(
     "";
 
   // If the webhook returns success but no URL (background generation), fallback to predictable public URL
+  // PNG path: generated-banners/final-banner-{sessionId}/finalbanner.png
+  // GIF path: generated-banners/{sessionId}/final-banner.gif
   if (!bannerUrl && response.ok) {
-    const ext = params.banner_type === "gif" ? "gif" : "png";
-    bannerUrl = `https://rqecqirwmpmowvpezhki.supabase.co/storage/v1/object/public/generated-banners/${sessionId}/final-banner.${ext}`;
-  } else if (
-    bannerUrl &&
-    bannerUrl.includes("/storage/v1/object/") &&
-    !bannerUrl.includes("/storage/v1/object/public/")
-  ) {
-    // Fix Supabase URLs missing the /public/ segment
-    bannerUrl = bannerUrl.replace(
-      "/storage/v1/object/",
-      "/storage/v1/object/public/"
-    );
+    if (params.banner_type === "gif") {
+      bannerUrl = `https://rqecqirwmpmowvpezhki.supabase.co/storage/v1/object/generated-banners/${sessionId}/final-banner.gif`;
+    } else {
+      bannerUrl = `https://rqecqirwmpmowvpezhki.supabase.co/storage/v1/object/generated-banners/final-banner-${sessionId}/finalbanner.png`;
+    }
   }
 
   return { success: !!bannerUrl, bannerUrl };

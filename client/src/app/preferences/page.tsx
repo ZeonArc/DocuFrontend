@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Github, Star, GitFork, User, UploadCloud, CheckCircle2, LayoutDashboard } from "lucide-react";
+import { Github, Star, GitFork, User, UploadCloud, CheckCircle2, LayoutDashboard, ArrowLeft } from "lucide-react";
 import BannerGenerationAnimation from "@/components/BannerGenerationAnimation";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/hooks/useSession";
@@ -18,44 +18,49 @@ import {
   analyzeRepo,
 } from "@/lib/api";
 import type { Preferences } from "@/lib/api";
+import { PREFERENCES_CONFIG } from "@/config/sections";
 
 // ─── Funny loading messages typewriter ───────────────────────────────────────
 
 const LOADING_MESSAGES = [
-  "Arranging pixels with surgical precision...",
-  "Asking the AI very nicely. It's ignoring us.",
-  "Downloading more RAM... just kidding. Maybe.",
-  "Breaking the fourth wall: hey you, yes you — go drink water.",
-  "Consulting the ancient README scrolls...",
-  "Polishing the developer's naturally curly hair... wait wrong job.",
-  "The developer who wrote this deserves a raise. And dinner. Just saying.",
-  "Training 47 neural networks to draw a rectangle...",
-  "Technically this is working. Philosophically, who knows.",
-  "Converting coffee to code to banner... ETA unknown.",
-  "Okay real talk — she coded this at 2am. Dinner. Minimum.",
-  "Whispering sweet nothings to the GPU...",
-  "Fun fact: this takes 2-3 mins. Grab a snack. You've earned it.",
-  "Negotiating with diffusion models. They drive a hard bargain.",
-  "Plot twist: the banner was inside us all along.",
-  "Applying 14 layers of artistic suffering...",
-  "Dev tip: if it looks wrong, squint and believe in yourself.",
-  "The AI is currently having an existential crisis. Please hold.",
-  "Generating gradients that spark joy...",
-  "Channelling the aesthetic energy of a sleep-deprived developer...",
-  "Your patience is being tracked. It's at 67% heroic.",
-  "Have you considered taking her out while this loads? Just a thought.",
-  "Turning vague vibes into precise pixels...",
-  "Fun fact: she shipped this instead of replying to texts. Respect.",
-  "Compiling hopes and dreams into image bytes...",
-  "Plot twist: the banner will look amazing. Trust the process.",
-  "Asking the latent space nicely. Still asking.",
-  "Buffering... not technically, but spiritually.",
-  "Almost there. Probably. The math suggests optimism.",
-  "Status: vibes are immaculate, pixels are cooperating.",
-  "Loading... like your DMs, but this one actually delivers.",
-  "Running on caffeine, chaos, and carefully crafted CSS.",
-  "The banner is being born. Respect the process.",
-  "Final checks: fonts ✓, colors ✓, existential dread ✓ — sending now.",
+  "Bribing the pixel police to let this banner through...",
+  "Training 47 neural networks to agree on one rectangle...",
+  "Convincing Times New Roman and Arial to stop beefing for five minutes...",
+  "Asking the logo to scoot just a little left... no, your other left...",
+  "Stretching one background image way past its emotional limits...",
+  "Trying 50 shades of grey, for branding ofc ;)",
+  "Convincing the README banner to look cooler than the actual codebase...",
+  "Adding just enough polish to distract from the 43 open issues...",
+  "Designing a banner so people forget the setup instructions are 17 steps long...",
+  "Making the repo look enterprise-ready before anyone checks the commit messages...",
+  "Turning caffeine, markdown, and ambition into one suspiciously professional banner...",
+  "Convincing 3,000 pixels to stand still for the banner photo...",
+  "Teaching AI the difference between 'banner' and 'banana'",
+  "Negotiating with fonts about their personal space issues",
+  "Explaining to the algorithm why Comic Sans is NOT invited",
+  "Teaching the model that 'minimalist' doesn't mean lazy",
+  "Installing 17 npm packages to fix one typo...",
+  "Searching Stack Overflow for answers and emotional support...",
+  "Asking the codebase who wrote this, then remembering it was us...",
+  "Adding TODO: fix this later' knowing later never comes...",
+  "Writing this cool loading messages at 3 AM T-T ",
+  "Pondering if i shld ask her out :3",
+  "Finding a 'DO NOT TOUCH' comment and touching it anyway",
+  "Realizing the reason behind 'DO NOT TOUCH' comment",
+  "Pondering my life decisions which led to me taking CSE :/ ",
+  "Discovering the previous developer left zero comments and changed careers",
+  "Performing Sacrifice ritual for zero ESLINT errors...",
+  "Plot twist: I'm stalling because I'm nervous about your reaction",
+  "This message was brought to you by Raid Shadow Legends... kek XD",
+  "Never give you up",
+  "Never gonna let you down",
+  "Achievement unlocked: Touch Grass!",
+  "Hiding vibecoding traces under the couch",
+  "I've seen your browser history. Just kidding. Unless...?",
+  "Between you and me, I finished 2 seconds ago but these messages are too fun",
+
+  ""
+
 ];
 
 function LoadingTypewriter() {
@@ -94,10 +99,43 @@ function LoadingTypewriter() {
   }, [msgIdx]);
 
   return (
-    <p className="font-body text-sm text-black font-medium leading-relaxed">
+    <span className="font-body text-sm text-black font-medium leading-relaxed">
       {text}
       <span className="inline-block w-[2px] h-[1em] bg-black ml-0.5 align-middle animate-pulse" />
-    </p>
+    </span>
+  );
+}
+
+function LabelTypewriter({ label, onComplete }: { label: string; onComplete?: () => void }) {
+  const [text, setText] = React.useState("");
+  const [done, setDone] = React.useState(false);
+
+  React.useEffect(() => {
+    let charIdx = 0;
+    let timeoutId: NodeJS.Timeout;
+
+    const tick = () => {
+      charIdx++;
+      setText(label.slice(0, charIdx));
+      if (charIdx >= label.length) {
+        setDone(true);
+        onComplete?.();
+        return;
+      }
+      timeoutId = setTimeout(tick, 55);
+    };
+
+    timeoutId = setTimeout(tick, 200);
+    return () => clearTimeout(timeoutId);
+  }, [label, onComplete]);
+
+  return (
+    <span className="block text-sm font-bold uppercase tracking-wider text-black">
+      {text}
+      {!done && (
+        <span className="inline-block w-[2px] h-[1em] bg-black ml-0.5 align-middle animate-pulse" />
+      )}
+    </span>
   );
 }
 
@@ -127,6 +165,7 @@ const BADGE_ID_MAP: Record<string, string> = {
 
 export default function PreferencesPage() {
   const [step, setStep] = useState(0);
+  const [highestVisited, setHighestVisited] = useState(0);
   const [direction, setDirection] = useState(1);
   const router = useRouter();
   const { sessionId, repoInfo, bannerUrl, setSessionId, setRepoInfo, setBannerUrl } = useSession();
@@ -177,7 +216,18 @@ export default function PreferencesPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [animationComplete, setAnimationComplete] = useState(false);
-  const [regenCooldown, setRegenCooldown] = useState(0);
+  const [showOutputLabel, setShowOutputLabel] = useState(false);
+
+  React.useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (animationComplete) {
+      timer = setTimeout(() => setShowOutputLabel(true), 1000);
+    } else {
+      setShowOutputLabel(false);
+    }
+    return () => clearTimeout(timer);
+  }, [animationComplete]);
+
   const [bannerError, setBannerError] = useState<string | null>(null);
 
   // --- Slide 4 State (Extra Media) ---
@@ -189,6 +239,7 @@ export default function PreferencesPage() {
 
   // Actions
   const nextStep = () => {
+    if (step === 2 && isGenerating) return;
     if (step === 1) {
       const contactRequired = selectedBadges["contact"] && !contactInfo.trim();
       const supportRequired = docMapSections["Support"] && !supportInfo.trim();
@@ -196,8 +247,10 @@ export default function PreferencesPage() {
       if (supportRequired) setShakeSupport(true);
       if (contactRequired || supportRequired) return;
     }
+    const next = Math.min(step + 1, 3);
     setDirection(1);
-    setStep((prev) => Math.min(prev + 1, 3));
+    setHighestVisited((prev) => Math.max(prev, next));
+    setStep(next);
   };
 
   const prevStep = () => {
@@ -207,6 +260,7 @@ export default function PreferencesPage() {
 
   const goToStep = (targetStep: number) => {
     if (targetStep === step) return;
+    if (targetStep > highestVisited) return;
 
     // Validation for moving forward from Step 2 (Index 1)
     if (step === 1 && targetStep > 1) {
@@ -254,13 +308,22 @@ export default function PreferencesPage() {
         ? [...badges, "buymeacoffee"]
         : badges;
 
+    const processEmailLink = (val: string) => {
+      const trimmed = val.trim();
+      if (!trimmed) return trimmed;
+      if (trimmed.includes("@") && !trimmed.startsWith("mailto:") && !trimmed.startsWith("http")) {
+        return `mailto:${trimmed}`;
+      }
+      return trimmed;
+    };
+
     const preferences: Preferences = {
       tone: format === "detailed" ? "complex" : format,
       sections,
       badges: badgesWithSupport,
       include_toc: format === "complex" || format === "detailed",
-      contact_info: contactInfo,
-      support_link: supportInfo,
+      contact_info: processEmailLink(contactInfo),
+      support_link: processEmailLink(supportInfo),
     };
 
     try {
@@ -289,27 +352,28 @@ export default function PreferencesPage() {
         user_prompt: bannerPrompt,
         style_reference: styleBase64,
         logo_image: logoBase64,
-        banner_type: bannerType,
+        banner_type: bannerType === "png" ? "img" : bannerType,
       });
 
       if (result.success && result.bannerUrl) {
         setBannerUrl(result.bannerUrl);
-        
+
         // Only trigger animation if reference images were uploaded
         if (!styleReferencePreview || !objectReferencePreview) {
-          // Fallback: poll the image here since we don't have the canvas animation fallback
+          // Poll using Image() constructor — same approach as BannerGenerationAnimation.
+          // fetch(HEAD) fails on Supabase public URLs due to CORS; Image() bypasses this.
           let imageReady = false;
           let attempts = 0;
           while (!imageReady && attempts < 60) {
-            try {
-              // Cache bust the URL to avoid 404 browser cache lock
+            imageReady = await new Promise<boolean>((resolve) => {
+              const img = new Image();
+              img.crossOrigin = "anonymous";
+              img.onload = () => resolve(true);
+              img.onerror = () => resolve(false);
               const sep = result.bannerUrl.includes("?") ? "&" : "?";
-              const res = await fetch(`${result.bannerUrl}${sep}t=${Date.now()}`, { method: "HEAD" });
-              if (res.ok) {
-                imageReady = true;
-              }
-            } catch {}
-            
+              img.src = `${result.bannerUrl}${sep}t=${Date.now()}`;
+            });
+
             if (!imageReady) {
               await new Promise((r) => setTimeout(r, 5000));
               attempts++;
@@ -323,7 +387,7 @@ export default function PreferencesPage() {
           }
 
           setGeneratedImageUrl(result.bannerUrl);
-          // Skip the canvas animation — jump straight to showing the result
+          setIsGenerating(false);
           setAnimationComplete(true);
         } else {
           setGeneratedImageUrl(result.bannerUrl);
@@ -342,20 +406,8 @@ export default function PreferencesPage() {
 
   const handleAnimationComplete = useCallback(() => {
     setAnimationComplete(true);
+    setIsGenerating(false);
   }, []);
-
-  // Regenerate cooldown timer
-  useEffect(() => {
-    if (animationComplete) {
-      setRegenCooldown(60);
-    }
-  }, [animationComplete]);
-
-  useEffect(() => {
-    if (regenCooldown <= 0) return;
-    const id = setTimeout(() => setRegenCooldown(prev => prev - 1), 1000);
-    return () => clearTimeout(id);
-  }, [regenCooldown]);
 
   // --- Fallback: initialize from this page if no session ---
   const handleFallbackSubmit = async () => {
@@ -402,10 +454,10 @@ export default function PreferencesPage() {
       const webhookContent = await generateReadme(sessionId, bannerUrl || undefined);
 
       // Try to get the authoritative content directly from Supabase
-      const supabaseContent = await fetchReadmeFromSupabase(sessionId);
+      const supabaseResult = await fetchReadmeFromSupabase(sessionId);
 
       // Prefer Supabase content (authoritative), fall back to webhook response
-      const readme = supabaseContent || webhookContent;
+      const readme = supabaseResult.content || webhookContent;
       if (readme) localStorage.setItem("docugithub_readme", readme);
       localStorage.setItem("docugithub_session_id_for_readme", sessionId);
       router.push("/editor");
@@ -473,6 +525,16 @@ export default function PreferencesPage() {
   return (
     <div className="min-h-screen w-full bg-[#f2f2f2] text-black font-body flex flex-col pt-24 px-4 overflow-hidden selection:bg-black selection:text-white pb-32">
 
+      {/* Go Back Button */}
+      <button
+        onClick={() => router.push("/")}
+        className="fixed top-6 left-6 z-50 flex items-center gap-2 px-4 py-2 bg-white border-[3px] border-black font-bold uppercase text-sm text-black shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-[#e0e0e0] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all"
+        data-cursor="pointer"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Home
+      </button>
+
       {/* Background Pattern */}
       <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none"
            style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
@@ -497,8 +559,9 @@ export default function PreferencesPage() {
               <button
                 key={i}
                 onClick={() => goToStep(i)}
-                className={`h-3 transition-all duration-300 border-2 border-black cursor-pointer ${i === step ? 'w-12 bg-black' : i < step ? 'w-8 bg-black opacity-30' : 'w-4 bg-white'}`}
-                title={`Go to Step ${i + 1}`}
+                className={`h-3 transition-all duration-300 border-2 border-black ${i === step ? 'w-12 bg-black cursor-pointer' : i <= highestVisited ? 'w-8 bg-black opacity-30 cursor-pointer' : 'w-4 bg-white cursor-not-allowed opacity-40'}`}
+                title={i <= highestVisited ? `Go to Step ${i + 1}` : `Complete previous steps first`}
+                data-cursor={i <= highestVisited ? "pointer" : "not-allowed"}
               ></button>
             ))}
           </div>
@@ -574,11 +637,16 @@ export default function PreferencesPage() {
                           </div>
                         </motion.div>
                       ) : repoInfo ? (
-                        <motion.div
-                          key="embed"
-                          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-                          className="bg-white border-[3px] border-black shadow-[6px_6px_0px_rgba(0,0,0,1)] overflow-hidden"
+                        <div
+                          style={{
+                            transform: `translate(${PREFERENCES_CONFIG.githubEmbed.xOffset}px, ${PREFERENCES_CONFIG.githubEmbed.yOffset}px)`,
+                          }}
                         >
+                          <motion.div
+                            key="embed"
+                            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+                            className="bg-white border-[3px] border-black shadow-[6px_6px_0px_rgba(0,0,0,1)] overflow-hidden"
+                          >
                           <div className="bg-[#f2f2f2] border-b-2 border-black p-4 flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                               <Github className="w-6 h-6" />
@@ -603,6 +671,7 @@ export default function PreferencesPage() {
                             </div>
                           </div>
                         </motion.div>
+                        </div>
                       ) : (
                         <motion.div
                           key="empty"
@@ -901,32 +970,33 @@ export default function PreferencesPage() {
                     </>
                   )}
 
-                  {/* Canvas animation — only when both reference images are uploaded */}
-                  {isGenerating && !animationComplete && styleReferencePreview && objectReferencePreview && (
-                    <BannerGenerationAnimation
-                      styleRefSrc={styleReferencePreview}
-                      objectRefSrc={objectReferencePreview}
-                      outputSrc={generatedImageUrl}
-                      onComplete={handleAnimationComplete}
-                    />
-                  )}
-
-                  {/* ── Typewriter loading in output area ─────────────────────── */}
+                  {/* ── Generating: single status line + canvas ─────────────── */}
                   {isGenerating && !animationComplete && (
-                    <div className="flex-1 flex items-center justify-center min-h-[180px]">
-                      <div className="max-w-lg w-full text-center space-y-3">
-                        <div className="flex items-center justify-center gap-3">
-                          <span className="w-4 h-4 rounded-full border-[3px] border-black border-t-transparent animate-spin flex-shrink-0"></span>
-                          <span className="font-mono text-[11px] text-zinc-400 uppercase tracking-widest">generating — usually 2–3 min</span>
-                        </div>
+                    <div className="space-y-2">
+                      {/* Single combined line: spinner + time hint + typewriter */}
+                      <div className="flex items-center gap-3">
+                        <span className="w-3.5 h-3.5 rounded-full border-[2.5px] border-black border-t-transparent animate-spin flex-shrink-0"></span>
+                        <span className="font-mono text-[11px] text-zinc-400 uppercase tracking-widest flex-shrink-0">2–3 min</span>
+                        <span className="text-zinc-300 flex-shrink-0">|</span>
                         <LoadingTypewriter />
                       </div>
+
+                      {/* Canvas animation — only when both reference images are uploaded */}
+                      {styleReferencePreview && objectReferencePreview && (
+                        <BannerGenerationAnimation
+                          styleRefSrc={styleReferencePreview}
+                          objectRefSrc={objectReferencePreview}
+                          outputSrc={generatedImageUrl}
+                          onComplete={handleAnimationComplete}
+                        />
+                      )}
                     </div>
                   )}
 
                   {/* ── Result: banner fetched from Supabase URL ─────────────────── */}
                   {animationComplete && (
-                    <div className="space-y-3">
+                    <div className="space-y-2">
+                      {showOutputLabel && <LabelTypewriter label="4. Output" />}
                       {generatedImageUrl && (
                         <div className="border-[3px] border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] overflow-hidden bg-white">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -963,19 +1033,10 @@ export default function PreferencesPage() {
                           setGeneratedImageUrl(null);
                           setBannerError(null);
                         }}
-                        disabled={regenCooldown > 0}
-                        className={`w-full py-4 border-[3px] font-header font-black text-xl uppercase tracking-widest transition-all flex items-center justify-center ${
-                          regenCooldown > 0
-                            ? "border-zinc-400 bg-zinc-800 text-zinc-500 cursor-not-allowed shadow-none"
-                            : "border-black bg-black text-white hover:bg-zinc-800 shadow-[4px_4px_0px_rgba(0,0,0,0.5)] hover:-translate-y-1 active:translate-y-0 active:shadow-none"
-                        }`}
-                        data-cursor={regenCooldown > 0 ? "not-allowed" : "pointer"}
+                        className="w-full py-4 border-[3px] border-black bg-black text-white font-header font-black text-xl uppercase tracking-widest transition-all flex items-center justify-center hover:bg-zinc-800 shadow-[4px_4px_0px_rgba(0,0,0,0.5)] hover:-translate-y-1 active:translate-y-0 active:shadow-none"
+                        data-cursor="pointer"
                       >
-                        {regenCooldown > 0 ? (
-                          <>Regenerate<span className="ml-2 text-sm font-mono font-normal tracking-normal opacity-40">{regenCooldown}s</span></>
-                        ) : (
-                          "Regenerate"
-                        )}
+                        Regenerate
                       </button>
                     </div>
                   )}
@@ -1087,7 +1148,7 @@ export default function PreferencesPage() {
                       onClick={handleGenerateReadme}
                       disabled={isGeneratingReadme}
                       className="w-full py-6 bg-white border-[3px] border-black text-black font-header font-black text-3xl uppercase tracking-widest hover:bg-black hover:text-white hover:-translate-y-2 hover:shadow-[12px_12px_0px_rgba(0,0,0,0.5)] transition-all shadow-[6px_6px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
-                      data-cursor="pointer"
+                      data-cursor={isGeneratingReadme ? "not-allowed" : "pointer"}
                     >
                       {isGeneratingReadme ? (
                         <span className="flex items-center justify-center gap-4">
@@ -1118,11 +1179,11 @@ export default function PreferencesPage() {
 
           <button
             onClick={nextStep}
-            disabled={step === 3 || (step === 1 && !preferencesSaved)}
-            className={`px-6 py-3 border-[3px] border-black font-bold uppercase disabled:pointer-events-none transition-colors active:translate-y-1 active:shadow-none shadow-[4px_4px_0px_rgba(0,0,0,1)] ${step === 3 ? 'opacity-0' : step === 1 && !preferencesSaved ? 'bg-[#f2f2f2] text-zinc-400 border-zinc-400 shadow-none' : 'bg-black text-white hover:bg-zinc-800'}`}
-            data-cursor={step === 1 && !preferencesSaved ? "not-allowed" : "pointer"}
+            disabled={step === 3 || (step === 1 && !preferencesSaved) || (step === 2 && isGenerating)}
+            className={`px-6 py-3 border-[3px] border-black font-bold uppercase disabled:pointer-events-none transition-colors active:translate-y-1 active:shadow-none shadow-[4px_4px_0px_rgba(0,0,0,1)] ${step === 3 ? 'opacity-0' : (step === 1 && !preferencesSaved) || (step === 2 && isGenerating) ? 'bg-[#f2f2f2] text-zinc-400 border-zinc-400 shadow-none' : 'bg-black text-white hover:bg-zinc-800'}`}
+            data-cursor={(step === 1 && !preferencesSaved) || (step === 2 && isGenerating) ? "not-allowed" : "pointer"}
           >
-            {step === 1 && !preferencesSaved ? "Save Required" : "Next Step →"}
+            {step === 1 && !preferencesSaved ? "Save Required" : step === 2 && isGenerating ? "Generating..." : "Next Step →"}
           </button>
         </div>
 

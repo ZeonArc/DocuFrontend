@@ -1,17 +1,18 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import GitHubPreview from "@/components/GitHubPreview";
 import { useSession } from "@/hooks/useSession";
-import { sendChatMessage, pushToGitHub, fetchReadmeFromSupabase } from "@/lib/api";
+import { sendChatMessage, pushToGitHub, fetchReadmeFromSupabase, syncReadmeToSupabase } from "@/lib/api";
 import {
   Bold, Italic,
   List, ListOrdered, Quote, Code,
   Heading1, Heading2, Heading3,
   Github, LayoutDashboard, MessageSquarePlus,
-  X, Send, Sparkles, Paperclip, ChevronDown
+  X, Send, Sparkles, Paperclip, ChevronDown, ArrowLeft, Save
 } from "lucide-react";
 
 // Static tool definitions live outside the component so the linter never
@@ -92,10 +93,60 @@ myProject.init({
   ]);
   const [chatInput, setChatInput] = useState("");
   const [attachedComments, setAttachedComments] = useState<Comment[]>([]);
+  const [editingAttachmentId, setEditingAttachmentId] = useState<string | null>(null);
   const [selectionPopup, setSelectionPopup] = useState<SelectionPopup>(null);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [readmeVersion, setReadmeVersion] = useState(1);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { sessionId, hydrated } = useSession();
+  const startCooldown = useCallback(() => {
+    if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+    setCooldownRemaining(75);
+    cooldownIntervalRef.current = setInterval(() => {
+      setCooldownRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(cooldownIntervalRef.current!);
+          cooldownIntervalRef.current = null;
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  // Clear interval on unmount
+  useEffect(() => () => {
+    if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+  }, []);
+
+  const router = useRouter();
+  const { sessionId, repoInfo, hydrated } = useSession();
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const handleManualSave = useCallback(async () => {
+    if (!sessionId || isSaving) return;
+    setIsSaving(true);
+    setSaveSuccess(false);
+    setSaveError(null);
+    try {
+      await syncReadmeToSupabase(sessionId, markdown);
+      setSaveSuccess(true);
+      setHasUnsavedChanges(false);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Save failed";
+      setSaveError(msg);
+      setTimeout(() => setSaveError(null), 3000);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [sessionId, markdown, isSaving]);
 
   // useSession hydrates via its own useEffect, so sessionId is null on first render.
   // Read the session ID directly from localStorage to avoid the race condition.
@@ -113,12 +164,16 @@ myProject.init({
     if (!sid) return;
 
     // Fetch the authoritative content from Supabase and overwrite
-    fetchReadmeFromSupabase(sid).then((content) => {
+    fetchReadmeFromSupabase(sid).then(({ content, version }) => {
       if (content) {
         setMarkdown(content);
         localStorage.setItem("docugithub_readme", content);
       }
+      setReadmeVersion(version);
+      setHasUnsavedChanges(false);
+      startCooldown();
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -144,14 +199,17 @@ myProject.init({
     if (!el) return;
     const start = el.selectionStart;
     const end = el.selectionEnd;
+    const scrollTop = el.scrollTop;
     const text = el.value;
     const selectedText = text.substring(start, end);
     const defaultText = (start === end && suffix) ? "text" : selectedText;
     const newText = text.substring(0, start) + prefix + defaultText + suffix + text.substring(end);
     setMarkdown(newText);
+    setHasUnsavedChanges(true);
     setTimeout(() => {
-      el.focus();
+      el.focus({ preventScroll: true });
       el.setSelectionRange(start + prefix.length, start + prefix.length + defaultText.length);
+      el.scrollTop = scrollTop;
     }, 0);
   }, []);
 
@@ -177,6 +235,21 @@ myProject.init({
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
 
+        const POPUP_WIDTH = 320;
+        const POPUP_HEIGHT_ESTIMATE = 220;
+        const MARGIN = 16;
+
+        let popupX = rect.left + rect.width / 2;
+        let popupY = rect.top;
+
+        // Clamp horizontal so popup stays within viewport
+        popupX = Math.max(POPUP_WIDTH / 2 + MARGIN, Math.min(popupX, window.innerWidth - POPUP_WIDTH / 2 - MARGIN));
+
+        // If popup would go above viewport, flip to below selection
+        if (popupY - POPUP_HEIGHT_ESTIMATE - 12 < MARGIN) {
+          popupY = rect.bottom + POPUP_HEIGHT_ESTIMATE + 12;
+        }
+
         // Nearest heading above selection = section context
         let sectionContext = "General";
         if (previewRef.current) {
@@ -191,8 +264,8 @@ myProject.init({
         // Store viewport-relative position so the popup renders correctly
         // regardless of any CSS transform on ancestor elements
         setSelectionPopup({
-          viewportX: rect.left + rect.width / 2,
-          viewportY: rect.top,
+          viewportX: popupX,
+          viewportY: popupY,
           text: selectedText,
           context: sectionContext,
           note: "",
@@ -237,9 +310,31 @@ myProject.init({
 
   const removeAttachment = (id: string) => {
     setAttachedComments(prev => prev.filter(c => c.id !== id));
+    if (editingAttachmentId === id) {
+      setEditingAttachmentId(null);
+      setChatInput("");
+    }
+  };
+
+  const editAttachmentNote = (id: string) => {
+    const attachment = attachedComments.find(c => c.id === id);
+    if (attachment) {
+      setEditingAttachmentId(id);
+      setChatInput(attachment.note || "");
+      chatInputRef.current?.focus();
+    }
   };
 
   const sendMessage = () => {
+    if (editingAttachmentId) {
+      setAttachedComments(prev => prev.map(c => 
+        c.id === editingAttachmentId ? { ...c, note: chatInput.trim() } : c
+      ));
+      setChatInput("");
+      setEditingAttachmentId(null);
+      return;
+    }
+
     if (!chatInput.trim() && attachedComments.length === 0) return;
 
     // Build the full compiled payload that will be sent to the AI backend.
@@ -283,14 +378,22 @@ myProject.init({
         ? attachments.map(a => a.sectionContext).join(",")
         : "general";
 
+      setIsTyping(true);
       sendChatMessage(sessionId, fullPayload, markdown, sectionCtx)
-        .then((res) => {
-          if (res.revised_readme) {
-            setMarkdown(res.revised_readme);
-            localStorage.setItem("docugithub_readme", res.revised_readme);
+        .then(async (res) => {
+          // The webhook wrote the updated README to Supabase.
+          // Fetch the authoritative content from the readme_versions table.
+          const supabaseResult = await fetchReadmeFromSupabase(sessionId);
+          const updatedReadme = supabaseResult.content || res.revised_readme;
+          if (supabaseResult.version) setReadmeVersion(supabaseResult.version);
+
+          if (updatedReadme) {
+            setMarkdown(updatedReadme);
+            localStorage.setItem("docugithub_readme", updatedReadme);
+            setHasUnsavedChanges(false);
             setChatMessages(prev => [...prev, {
               role: "ai" as const,
-              text: `README updated! (v${res.version ?? "new"})`,
+              text: "Your readme revision request has been processed. Do let me know if you need anything else :3",
             }]);
           } else {
             setChatMessages(prev => [...prev, {
@@ -304,14 +407,15 @@ myProject.init({
             role: "ai" as const,
             text: `Error: ${err instanceof Error ? err.message : "Request failed"}`,
           }]);
-        });
+        })
+        .finally(() => { setIsTyping(false); startCooldown(); });
     }
   };
 
   const handleChatKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      if (editingAttachmentId || cooldownRemaining === 0) sendMessage();
     }
   };
 
@@ -335,10 +439,13 @@ myProject.init({
         const [, marker] = bulletMatch;
         const nextMarker = `\n${marker}`;
         const newText = text.substring(0, start) + nextMarker + text.substring(start);
+        const scrollTop = el.scrollTop;
         setMarkdown(newText);
+        setHasUnsavedChanges(true);
         setTimeout(() => {
-          el.focus();
+          el.focus({ preventScroll: true });
           el.setSelectionRange(start + nextMarker.length, start + nextMarker.length);
+          el.scrollTop = scrollTop;
         }, 0);
         return;
       }
@@ -349,10 +456,13 @@ myProject.init({
         const nextNum = parseInt(numStr) + 1;
         const nextMarker = `\n${nextNum}. `;
         const newText = text.substring(0, start) + nextMarker + text.substring(start);
+        const scrollTop = el.scrollTop;
         setMarkdown(newText);
+        setHasUnsavedChanges(true);
         setTimeout(() => {
-          el.focus();
+          el.focus({ preventScroll: true });
           el.setSelectionRange(start + nextMarker.length, start + nextMarker.length);
+          el.scrollTop = scrollTop;
         }, 0);
         return;
       }
@@ -377,10 +487,13 @@ myProject.init({
       if (bulletMatch || numberMatch) {
         e.preventDefault();
         const newText = text.substring(0, start - currentLine.length) + text.substring(start);
+        const scrollTop = el.scrollTop;
         setMarkdown(newText);
+        setHasUnsavedChanges(true);
         setTimeout(() => {
-          el.focus();
+          el.focus({ preventScroll: true });
           el.setSelectionRange(start - currentLine.length, start - currentLine.length);
+          el.scrollTop = scrollTop;
         }, 0);
       }
     }
@@ -388,6 +501,15 @@ myProject.init({
 
   return (
     <div className="h-[100dvh] w-full bg-[#f2f2f2] text-black font-body flex flex-col overflow-hidden pt-[100px] px-4 md:px-8 lg:px-12 pb-6 md:pb-8 lg:pb-12">
+
+      <button
+        onClick={() => router.push("/")}
+        className="fixed top-6 left-6 z-50 flex items-center gap-2 px-4 py-2 bg-white border-[3px] border-black font-bold uppercase text-sm text-black shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:bg-[#e0e0e0] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all"
+        data-cursor="pointer"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Home
+      </button>
 
       <motion.div
         initial={{ opacity: 0, y: 40, scale: 0.98 }}
@@ -403,7 +525,7 @@ myProject.init({
             </div>
             <div>
               <h1 className="text-2xl font-comic font-black uppercase tracking-tight leading-none text-black">README.md</h1>
-              <p className="text-sm font-handwritten italic text-zinc-600 mt-1">DocuGithub Workspace</p>
+              <p className="text-sm font-handwritten italic text-zinc-600 mt-1" data-cursor="default">Markdown Editor</p>
             </div>
           </div>
 
@@ -420,6 +542,10 @@ myProject.init({
             <button
               onClick={async () => {
                 if (!sessionId) return;
+                if (hasUnsavedChanges) {
+                  alert("You have unsaved changes. Please save your edits first before pushing to GitHub.");
+                  return;
+                }
                 if (!confirm("This will update README.md in your repository. Continue?")) return;
                 try {
                   const res = await pushToGitHub(sessionId, markdown);
@@ -428,11 +554,16 @@ myProject.init({
                   alert(err instanceof Error ? err.message : "Push failed");
                 }
               }}
-              className="flex items-center space-x-2 px-6 py-3 bg-black border-2 border-black font-header font-bold uppercase tracking-wide text-white hover:bg-zinc-800 transition-colors shadow-[4px_4px_0px_rgba(0,0,0,0.3)] active:translate-y-1 active:shadow-none"
+              className={`flex items-center space-x-2 px-6 py-3 border-2 font-header font-bold uppercase tracking-wide transition-colors shadow-[4px_4px_0px_rgba(0,0,0,0.3)] active:translate-y-1 active:shadow-none ${
+                hasUnsavedChanges
+                  ? "bg-amber-400 border-amber-500 text-black hover:bg-amber-300"
+                  : "bg-black border-black text-white hover:bg-zinc-800"
+              }`}
               data-cursor="pointer"
+              title={hasUnsavedChanges ? "Unsaved changes — save first before pushing" : "Push to GitHub"}
             >
               <Github className="w-5 h-5" />
-              <span>Push to GitHub</span>
+              <span>{hasUnsavedChanges ? "Save First" : "Push to GitHub"}</span>
             </button>
           </div>
         </header>
@@ -457,6 +588,40 @@ myProject.init({
                   {tool.icon}
                 </button>
               ))}
+
+              {/* Spacer pushes save to the right */}
+              <div className="flex-1" />
+
+              {/* Divider */}
+              <div className="w-px h-6 bg-black/20 mx-1 shrink-0" />
+
+              {/* Manual Save */}
+              <button
+                type="button"
+                title={
+                  saveError ? saveError
+                  : saveSuccess ? "Saved!"
+                  : hasUnsavedChanges ? "Unsaved changes — click to save"
+                  : "Save to Supabase"
+                }
+                onClick={handleManualSave}
+                disabled={isSaving || !sessionId}
+                data-cursor="pointer"
+                className={`relative p-2 border-2 transition-all rounded-none ${
+                  saveError
+                    ? "border-red-500 bg-red-50 text-red-600"
+                    : saveSuccess
+                    ? "border-green-600 bg-green-50 text-green-700"
+                    : hasUnsavedChanges
+                    ? "border-amber-400 bg-amber-50 text-black"
+                    : "border-transparent hover:border-black hover:bg-[#f2f2f2] text-black"
+                } disabled:opacity-40 disabled:cursor-not-allowed`}
+              >
+                <Save className={`w-5 h-5 ${isSaving ? "animate-pulse" : ""}`} />
+                {hasUnsavedChanges && !saveSuccess && !saveError && (
+                  <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-amber-500" />
+                )}
+              </button>
             </div>
 
             {/* Text Area */}
@@ -464,7 +629,7 @@ myProject.init({
                 <Textarea
                   ref={textareaRef}
                   value={markdown}
-                  onChange={(e) => setMarkdown(e.target.value)}
+                  onChange={(e) => { setMarkdown(e.target.value); setHasUnsavedChanges(true); }}
                   onKeyDown={handleEditorKeyDown}
                   className="w-full h-full bg-transparent border-none text-black font-mono text-base leading-relaxed resize-none focus-visible:ring-0 p-6 selection:bg-black selection:text-white"
                   placeholder="Start typing your markdown here..."
@@ -475,7 +640,7 @@ myProject.init({
 
             {/* Editor Footer Status */}
             <div className="flex-none px-6 py-3 border-t-2 border-black text-sm font-bold uppercase tracking-wider text-black flex justify-between bg-[#e0e0e0]">
-              <span>Markdown Supported</span>
+              <span>Version {readmeVersion}</span>
               <span>{markdown.length} CHR</span>
             </div>
           </section>
@@ -487,7 +652,7 @@ myProject.init({
           >
             {/* GitHub-accurate preview — fills the pane, scrolls internally */}
             <div className="flex-1 overflow-hidden">
-              <GitHubPreview markdown={markdown} />
+              <GitHubPreview markdown={markdown} repoOwner={repoInfo?.owner} repoName={repoInfo?.repo} />
             </div>
           </section>
 
@@ -523,10 +688,11 @@ myProject.init({
                 </span>
               </div>
               <button
-                className="hover:text-zinc-400 transition-colors shrink-0"
+                className="hover:text-zinc-400 transition-colors shrink-0 p-2 -mr-2 -my-2 flex items-center justify-center"
+                data-cursor="pointer"
                 onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setSelectionPopup(null); }}
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4 pointer-events-none" />
               </button>
             </div>
 
@@ -604,16 +770,18 @@ myProject.init({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsMinimized(v => !v)}
-                  className="hover:text-zinc-300 transition-colors"
+                  className="hover:text-zinc-300 transition-colors p-1 -m-1"
                   title={isMinimized ? "Expand" : "Minimize"}
+                  data-cursor="pointer"
                 >
                   <ChevronDown className={`w-4 h-4 transition-transform ${isMinimized ? "rotate-180" : ""}`} />
                 </button>
                 <button
                   onClick={() => setIsChatOpen(false)}
-                  className="hover:text-zinc-300 transition-colors"
+                  className="hover:text-zinc-300 transition-colors p-1 -m-1"
+                  data-cursor="pointer"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-4 h-4 pointer-events-none" />
                 </button>
               </div>
             </div>
@@ -664,6 +832,27 @@ myProject.init({
                         </div>
                       </div>
                     ))}
+                    {isTyping && (
+                      <div className="flex flex-col items-start gap-1">
+                        <div className="px-3 py-2 text-sm max-w-[85%] border-2 border-black bg-[#f2f2f2] text-black shadow-[3px_3px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5 h-[38px] w-[54px]">
+                          <motion.div
+                            className="w-1.5 h-1.5 bg-black rounded-full"
+                            animate={{ y: [0, -3, 0] }}
+                            transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0 }}
+                          />
+                          <motion.div
+                            className="w-1.5 h-1.5 bg-black rounded-full"
+                            animate={{ y: [0, -3, 0] }}
+                            transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.15 }}
+                          />
+                          <motion.div
+                            className="w-1.5 h-1.5 bg-black rounded-full"
+                            animate={{ y: [0, -3, 0] }}
+                            transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+                          />
+                        </div>
+                      </div>
+                    )}
                     <div ref={chatBottomRef} />
                   </div>
 
@@ -672,18 +861,30 @@ myProject.init({
                     <div className="px-4 py-2 border-t-2 border-black bg-[#fffbeb] flex flex-col gap-1.5">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Attached sections</span>
                       {attachedComments.map(c => (
-                        <div key={c.id} className="flex items-start gap-2 bg-white border border-black px-2 py-1">
-                          <Paperclip className="w-3 h-3 shrink-0 mt-0.5 text-zinc-500" />
-                          <div className="flex-1 min-w-0">
+                        <div
+                           key={c.id}
+                           className="relative group flex items-start gap-2 bg-white border border-black px-2 py-1 select-none hover:bg-[#f8f8f8] transition-colors"
+                           onDoubleClick={() => editAttachmentNote(c.id)}
+                           data-cursor="pointer"
+                        >
+                          <Paperclip className="w-3 h-3 shrink-0 mt-0.5 text-zinc-500 pointer-events-none" />
+                          <div className="flex-1 min-w-0 pointer-events-none">
                             <span className="text-[10px] font-bold uppercase tracking-wide text-zinc-500">{c.sectionContext}</span>
                             <p className="text-xs font-mono text-black leading-tight truncate">&ldquo;{c.selectedText}&rdquo;</p>
                           </div>
                           <button
                             onClick={() => removeAttachment(c.id)}
-                            className="shrink-0 hover:text-red-600 transition-colors"
+                            className="shrink-0 hover:text-red-600 transition-colors p-1 -mr-1 -mt-1 peer"
+                            data-cursor="pointer"
                           >
-                            <X className="w-3 h-3" />
+                            <X className="w-3.5 h-3.5 pointer-events-none" />
                           </button>
+                          
+                          {/* Custom Tooltip */}
+                          <div className="absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 peer-hover:!opacity-0 transition-opacity pointer-events-none z-[110] whitespace-nowrap bg-black text-white text-[10px] tracking-widest font-bold uppercase px-3 py-1.5 border border-black shadow-[2px_2px_0px_rgba(0,0,0,0.5)]">
+                            Double-click to edit note
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-black" />
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -697,17 +898,32 @@ myProject.init({
                         value={chatInput}
                         onChange={e => setChatInput(e.target.value)}
                         onKeyDown={handleChatKeyDown}
-                        placeholder="Describe your edits… (Enter to send)"
+                        placeholder={editingAttachmentId ? "Edit note... (Enter to save)" : "Describe your edits… (Enter to send)"}
                         rows={2}
                         className="flex-1 resize-none border-2 border-black px-3 py-2 text-sm font-body text-black placeholder:text-zinc-400 focus:outline-none focus:border-black bg-[#f8f8f8]"
                       />
-                      <button
-                        onClick={sendMessage}
-                        disabled={!chatInput.trim() && attachedComments.length === 0}
-                        className="shrink-0 w-10 h-10 bg-black text-white border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_rgba(0,0,0,0.3)] hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed active:translate-y-0.5 active:shadow-none"
-                      >
-                        <Send className="w-4 h-4" />
-                      </button>
+                      <div className="relative group shrink-0">
+                        <button
+                          onClick={sendMessage}
+                          disabled={editingAttachmentId ? false : (cooldownRemaining > 0 || isTyping || (!chatInput.trim() && attachedComments.length === 0))}
+                          className="w-10 h-10 bg-black text-white border-2 border-black flex items-center justify-center shadow-[3px_3px_0px_rgba(0,0,0,0.3)] hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed active:translate-y-0.5 active:shadow-none"
+                        >
+                          {editingAttachmentId ? (
+                            <Save className="w-4 h-4" />
+                          ) : cooldownRemaining > 0 ? (
+                            <span className="text-[10px] font-bold tabular-nums leading-none">{cooldownRemaining}</span>
+                          ) : (
+                            <Send className="w-4 h-4" />
+                          )}
+                        </button>
+                        {!editingAttachmentId && cooldownRemaining > 0 && (
+                          <div className="absolute bottom-[calc(100%+12px)] right-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[110] whitespace-nowrap bg-black text-white text-[10px] tracking-widest font-bold uppercase px-3 py-1.5 border border-black shadow-[2px_2px_0px_rgba(0,0,0,0.5)]">
+                            Available in {cooldownRemaining}s
+                            {/* Small downward pointing triangle relative to the tooltip */}
+                            <div className="absolute top-full right-[10px] w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-black" />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </motion.div>

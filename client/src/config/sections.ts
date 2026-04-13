@@ -179,11 +179,26 @@ export const HERO_TYPOGRAPHY = {
     fontSize: 20,
     fontWeight: 300,
     fontFamily: "var(--font-body)",
+    width: 512,
+    height: 0,
+    xOffset: 0,
+    yOffset: 0,
+    innerXOffset: -10,
+    innerYOffset: -2,
   },
   uploadButton: {
     size: 85,
-    xOffset: -8,
+    xOffset: -10,
     yOffset: 1,
+  },
+  loadingAnimation: {
+    xOffset: 10,
+    yOffset: 5,
+    fontSize: 10,
+    segmentWidth: 10,
+    segmentHeight: 12,
+    segmentCount: 7,
+    fontFamily: "var(--font-pixel)",
   },
   cursors: {
     mascotFace: "pan",
@@ -681,28 +696,28 @@ export const CURSOR_CONFIG = {
   // Separate size (px) for the testimonial / handwriting cursor
   testimonialCursorSize: 5,
   hotspots: {
-    default:     { x: 4,  y: 2  },  // Pointer.cur  — arrow tip
-    pointer:     { x: 8,  y: 0  },  // Link.cur      — fingertip
-    text:        { x: 3,  y: 9  },  // Text.cur      — I-beam center
-    move:        { x: 11, y: 11 },  // Move.cur      — 4-way center
-    grab:        { x: 11, y: 11 },  // Move.cur      — palm center (idle)
-    grabbing:    { x: 11, y: 11 },  // Grabbing.cur  — palm center (active)
-    notAllowed:  { x: 11, y: 11 },  // Unavailable.cur — visual center
-    help:        { x: 4,  y: 2  },  // Help.cur      — arrow tip
-    crosshair:   { x: 11, y: 11 },  // Cross.cur     — precise center
-    zoomIn:      { x: 8,  y: 8  },  // Zoom-in.cur   — lens center
-    zoomOut:     { x: 8,  y: 8  },  // Zoom-out.cur  — lens center
-    ewResize:    { x: 11, y: 3  },  // Horz.cur      — horizontal center
-    nsResize:    { x: 3,  y: 11 },  // Vert.cur      — vertical center
-    nwseResize:  { x: 11, y: 11 },  // Dgn1.cur      — diagonal center
-    neswResize:  { x: 11, y: 11 },  // Dgn2.cur      — diagonal center
+    default:     { x: 4,  y: 1  },  // Pointer.cur  — arrow tip (embedded: 4,1)
+    pointer:     { x: 9,  y: 1  },  // Link.cur      — fingertip (embedded: 9,1)
+    text:        { x: 11, y: 50 },  // Text.cur      — I-beam center (embedded: 11,11)
+    move:        { x: 11, y: 11 },  // Move.cur      — 4-way center (embedded: 11,11)
+    grab:        { x: 11, y: 11 },  // Move.cur      — palm center (idle) (embedded: 11,11)
+    grabbing:    { x: 11, y: 5  },  // Grabbing.cur  — palm center (active) (embedded: 11,5)
+    notAllowed:  { x: 4,  y: 1  },  // Unavailable.cur — arrow tip (embedded: 4,1)
+    help:        { x: 3,  y: 7  },  // Help.cur      — arrow tip (embedded: 3,7)
+    crosshair:   { x: 11, y: 11 },  // Cross.cur     — precise center (embedded: 11,11)
+    zoomIn:      { x: 9,  y: 9  },  // Zoom-in.cur   — lens center (embedded: 9,9)
+    zoomOut:     { x: 9,  y: 9  },  // Zoom-out.cur  — lens center (embedded: 9,9)
+    ewResize:    { x: 11, y: 11 },  // Horz.cur      — horizontal center (embedded: 11,11)
+    nsResize:    { x: 11, y: 11 },  // Vert.cur      — vertical center (embedded: 11,11)
+    nwseResize:  { x: 11, y: 11 },  // Dgn1.cur      — diagonal center (embedded: 11,11)
+    neswResize:  { x: 11, y: 11 },  // Dgn2.cur      — diagonal center (embedded: 11,11)
     wait:        { x: 11, y: 11 },  // Busy.ani      — visual center
-    progress:    { x: 4,  y: 2  },  // Work.ani      — arrow tip
-    contextMenu: { x: 4,  y: 2  },  // Alternate.cur — arrow tip
-    handwriting: { x: 5,  y: 29 },  // Handwriting   — pen nib (Testimonials nav link)
-    pan:         { x: 11, y: 11 },  // Pan.cur       — center
-    person:      { x: 11, y: 4  },  // Person.cur    — head top
-    pin:         { x: 5,  y: 0  },  // Pin.cur       — pin tip
+    progress:    { x: 4,  y: 1  },  // Work.ani      — arrow tip
+    contextMenu: { x: 17, y: 1  },  // Alternate.cur — arrow tip (embedded: 17,1)
+    handwriting: { x: 3,  y: 18 },  // Handwriting   — pen nib (embedded: 3,18)
+    pan:         { x: 12, y: 6  },  // Pan.cur       — center (embedded: 12,6)
+    person:      { x: 4,  y: 1  },  // Person.cur    — head top (embedded: 4,1)
+    pin:         { x: 4,  y: 1  },  // Pin.cur       — pin tip (embedded: 4,1)
   },
 } as const;
 
@@ -712,6 +727,21 @@ export const CURSOR_CONFIG = {
 // Use this if you prefer accessing configs through a single namespace:
 //   SECTION_CONFIGS.hero.title.fontFamily
 // =============================================================================
+
+// =============================================================================
+// PREFERENCES PAGE CONFIG
+// =============================================================================
+// Variable: PREFERENCES_CONFIG
+// Location: Used in client/src/app/preferences/page.tsx
+// Controls: GitHub embed box offset on the Repository Connection slide
+// =============================================================================
+
+export const PREFERENCES_CONFIG = {
+  githubEmbed: {
+    xOffset: 0,
+    yOffset: -15,
+  },
+} as const;
 
 export const SECTION_CONFIGS = {
   header: HEADER_TYPOGRAPHY,
